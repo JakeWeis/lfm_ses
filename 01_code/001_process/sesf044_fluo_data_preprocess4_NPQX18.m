@@ -36,6 +36,7 @@
 
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
+% J. Weis (jw)
 % last modified: 22.04.18
 % 
 % 20.03.31 update: adding switch case for plot/no plot option (default =

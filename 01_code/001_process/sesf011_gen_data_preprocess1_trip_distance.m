@@ -19,6 +19,7 @@
 
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
+% J. Weis (jw)
 % last modified: 22.03.29
 
 % 20.02.12 update: add colorbar on trajectory plot to display date

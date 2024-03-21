@@ -18,6 +18,7 @@
 
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
+% J. Weis (jw)
 % last modified: 23.03.31
 %
 % 20.07.01 update: add idx000_genProfileSelec and idx013_bathyMin to

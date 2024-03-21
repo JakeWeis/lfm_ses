@@ -22,6 +22,7 @@
 
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
+% J. Weis (jw)
 % last modified: 22.04.06
 % 
 % 20.01.30 update: no more correction, just nan after dark value detected

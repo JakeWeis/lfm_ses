@@ -21,6 +21,7 @@
 
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
+% J. Weis (jw)
 % last modified: 22.04.18
 % 
 % 20.09.25 update: removing for loop

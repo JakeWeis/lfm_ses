@@ -25,6 +25,7 @@
 
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
+% J. Weis (jw)
 % last modified: 22.03.29
 % 
 % 20.08.31 update: adusting DATE/PRES array size to max_depth_dataset value

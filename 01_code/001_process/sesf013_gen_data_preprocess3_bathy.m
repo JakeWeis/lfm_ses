@@ -24,6 +24,7 @@
 
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
+% J. Weis (jw)
 % last modified: 22.03.29
 % 
 % 20.07.01 update: adding logical for bathy > min model bathy threshold

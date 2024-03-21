@@ -15,6 +15,7 @@
 
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
+% J. Weis (jw)
 % last modified: 22.04.06
 %
 % 21.04.27 update: modifying script to print all open figures

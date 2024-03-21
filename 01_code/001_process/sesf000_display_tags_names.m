@@ -17,6 +17,7 @@ disp(['current MATLAB version:' version])
 
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
+% J. Weis (jw)
 % last modified: 22.10.31
 % 
 % -----------------------------------------------------------------------

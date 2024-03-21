@@ -21,6 +21,7 @@
 
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
+% J. Weis (jw)
 % last modified: 22.04.14
 % 
 % 20.02.11 update: addition of test to avoid error

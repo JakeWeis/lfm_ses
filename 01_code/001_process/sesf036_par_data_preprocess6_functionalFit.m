@@ -20,6 +20,7 @@
 
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
+% J. Weis (jw)
 % last modified: 22.04.06
 % 
 % 22.02.04 update: adding idxARGVALS condition on profile length

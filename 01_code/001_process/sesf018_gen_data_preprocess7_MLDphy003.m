@@ -20,6 +20,7 @@
 
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
+% J. Weis (jw)
 % last modified: 22.04.18
 % 
 % 22.04.06 update: compute MLD003 on DENS_fit instead of DENS raw (DENS raw

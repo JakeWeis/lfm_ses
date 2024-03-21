@@ -20,6 +20,7 @@
 
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
+% J. Weis (jw)
 % last modified: 22.10.28
 % 
 % 22.03.31 update: add creation of chlaData table (based on fluoData table)

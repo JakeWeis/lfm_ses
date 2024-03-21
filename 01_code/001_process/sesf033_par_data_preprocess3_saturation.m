@@ -21,6 +21,7 @@
 
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
+% J. Weis (jw)
 % last modified: 22.04.18
 % 
 % 22.04.06 update: renaming LIGHT into PAR (L_adxxx becomes PAR_nadxxx)

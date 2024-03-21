@@ -26,6 +26,7 @@
 
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
+% J. Weis (jw)
 % last modified: 22.05.10
 % 
 % 21.04.27 update: gathering metrics in same script

@@ -26,6 +26,7 @@
 
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
+% J. Weis (jw)
 % last modified: 22.04.06
 % 
 % 21.01.12 update: adjusting variables names (CHLA_nad and chlaData)
