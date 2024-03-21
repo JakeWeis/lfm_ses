@@ -1,0 +1,240 @@
+deployment_code,location,species,pi_name,time_coverage_start,base_station
+BM01,Beaufort Sea,Bowhead,ALASKA,2012,
+BM02,Beaufort Sea,Bowhead,ALASKA,2017,
+BM03,Beaufort Sea,Bowhead,ALASKA,2018,
+DL02,,Grey seal,DFOQuebec,2018,
+MY01,Greenland,Bowhead,Aarhus,2017,
+awru1,Davis,Weddell seal,HINDELL,2007,
+bs1,Heard Island,Fur seal,STANILAN,2004,
+bs2,Heard Island,Fur seal,STANILAN,2006,
+bv3,Bouvet,Southern ellie,NPOLAR,2015,
+ct1,South Georgia,Southern ellie,FEDAK,2004,
+ct10,California,Northern ellie,COSTA,2005,
+ct100,Campbell,Southern ellie,IMOS,2013,
+ct101,South Australia,Fur seal,IMOS,2013,
+ct102,King George Is. Antar,Southern ellie,BESTER-AWI,2013,
+ct103,ct103,ct103,ct103,ct10,
+ct104,PIG. Antarctica,Southern ellie,SMRU,2014,
+ct105,Kerguelen,Southern ellie,GAO,2013,PAF
+ct106,South Australia,Sea lion,SARDI,2013,
+ct107,California,Northern ellie,COSTA,2014,
+ct108,Campbell,Southern ellie,IMOS,2014,
+ct109,Kerguelen,Southern ellie,IMOS,2014,PAF
+ct11,Kerguelen,Southern ellie,GUINET,2005,PAF
+ct110,Montague Is. Australia,Fur seal,IMOS,2014,
+ct111,Dumont D'Urville,Weddell seal,IMOS,2014,DDU
+ct112,Kerguelen,Southern ellie,GUINET,2014,PAF
+ct113,Weddell Sea,Weddell seal,AWI,2016,
+ct114,California,Northern ellie,COSTA,2015,
+ct115,Montague Is. Australia,Fur seal,SARDI,2014,
+ct116,Davis,Southern ellie,IMOS,2016,
+ct117,Kerguelen,Southern ellie,GUINET,2015,PAF
+ct118,South Shetland Island,Leopard seal,GOEBEL,2015,
+ct119,Scott Base,Weddell seal,IMOS,2016,
+ct12,California,Northern ellie,COSTA,2005,
+ct120,Kerguelen,Southern ellie,GUINET,2015,PAF
+ct121,Kerguelen,Southern ellie,GAO,2016,PAF
+ct122,Kerguelen,Southern ellie,IMOS,2016,PAF
+ct123,South Australia,Sea lion,SARDI,2015,
+ct124,ct124,ct124,ct124,ct124,
+ct125,California,Northern ellie,COSTA,2016,
+ct126,California,Northern ellie,COSTA,2016,
+ct127,Peninsula Valdes,Southern ellie,COSTA,2016,P.Del.
+ct128,Dumont D'Urville,Weddell seal,IMOS,2017,DDU
+ct128a,Weddell Sea,Weddell seal,IMOS,2017,
+ct129,SNI.California,Northern ellie,COSTA,2016,
+ct13,Mexico,Northern ellie,COSTA,2005,
+ct130,Svalbard,Ringed seal,NPOLAR,2016,
+ct131,Kerguelen,Southern ellie,GUINET,2016,PAF
+ct132,Kerguelen,Southern ellie,GUINET,2016,PAF
+ct133,Davis,Southern ellie,GAO,2017,
+ct134,Davis,Southern ellie,IMOS,2017,
+ct135,Kerguelen,Southern ellie,IMOS,2017,PAF
+ct136,Montague Is. Australia,Fur seal,SARDI,2017,
+ct137,Ano Nuevo. California,Northern ellie,COSTA,2017,
+ct138,Svalbard,Ringed seal,NPOLAR,2017,
+ct139,Kerguelen,Southern ellie,GUINET,2017,PAF
+ct14,Cape Shirreff. Antarc,Southern ellie,COSTA,2006,
+ct140,Kerguelen,Southern ellie,IMOS,2017,PAF
+ct141,Bouvet,Southern ellie,NPOLAR,2018,
+ct142,Montague Is. Australia,Fur seal,SARDI,2017,
+ct143,South Shetland Island,Weddell seal,GOEBEL,2018,
+ct144,Kerguelen,Southern ellie,IMOS,2018,PAF
+ct145,Ano Nuevo. California,Northern ellie,COSTA,2018,
+ct146,Naples,Loggerhead turtle,HOCHSCHEID,2018,
+ct147,Kerguelen,Southern ellie,TARSAN,2018,PAF
+ct148,Kerguelen,Southern ellie,IMOS,2018,PAF
+ct149,Kerguelen,Southern ellie,HINDELL,2018,PAF
+ct15,California,California sea lion,COSTA,2005,
+ct150,Ross Sea,Weddell seal,IMOS,2018,
+ct152,Kerguelen,Southern ellie,GUINET,2019,PAF
+ct154,Peninsula Valdes,Southern ellie,GUINET,2019,P.Del.
+ct155,Kerguelen,Southern ellie,GUINET,2019,PAF
+ct157,Kerguelen,Southern ellie,IMOS,2019,PAF
+ct159,Kerguelen,Southern ellie,GUINET,2020,PAF
+ct160,Kerguelen,Southern ellie,IMOS,2020,PAF
+ct16,Kerguelen,Southern ellie,GUINET,2006,PAF
+ct17,Ano Nuevo. California,Northern ellie,COSTA,2006,
+ct18,Canada,Hooded seal,STENSON,2007,
+ct19,Ano Nuevo. California,Northern ellie,COSTA,2006,
+ct2,Macquarie,Southern ellie,HINDELL,2004,
+ct20,Bering Sea,Bearded seal,NMML,2006,
+ct21,Marion Island,,AWI,2007,
+ct22,Elephant Island,Southern ellie,MUELBERT,2008,
+ct23,Kerguelen,Southern ellie,GUINET,2006,PAF
+ct23x,Kerguelen,Southern ellie,GUINET,2009,PAF
+ct25,Cape Shirreff. Antarc,Southern ellie,COSTA,2007,
+ct26,Kerguelen,Southern ellie,GUINET,2007,PAF
+ct27,Weddell Sea,,NICHOLLS,2007,
+ct27x,Elephant Island,,NICHOLLS,2007,
+ct28,Ano Nuevo. California,Northern ellie,COSTA,2007,
+ct29,Antarctic,Crabeater seal,COSTA,2007,
+ct3,Kerguelen,Southern ellie,GUINET,2004,PAF
+ct30,Ano Nuevo. California,Northern ellie,COSTA,2007,
+ct31,South Australia,Australian sea lion,SARDI,2008,
+ct32,Jan Mayen,Hooded seal,NPOLAR,2007,
+ct32x,Jan Mayen,Hooded seal,NPOLAR,2008,
+ct33,Marion Island,,BESTER,2008,
+ct34,Bouvet,Southern ellie,NPOLAR,2008,
+ct35,Marion Island,,AWI,2007,
+ct35b,Marion Island,,AWI,2008,
+ct35x,Marion Island,,BESTER-AWI,2008,
+ct36,Kerguelen,Southern ellie,HINDELL,2009,PAF
+ct37,Antarctica,Southern ellie,COSTA,2008,
+ct38e,Kerguelen,Southern ellie,GUINET,2007,PAF
+ct38w,Dumont D'Urville,Weddell seal,HINDELL,2008,DDU
+ct39,Elephant Island,Southern ellie,MUELBERT,2008,
+ct4,California,Northern ellie,COSTA,2004,
+ct40,South Georgia,Southern ellie,FEDAK,2008,
+ct41,California,Northern ellie,COSTA,2008,
+ct42,Marion Island,,BESTER,2008,
+ct43,Weddell Sea,,NICHOLLS,2009,
+ct44,Weddell Sea,,AWI,2008,
+ct45,South Georgia,Southern ellie,FEDAK,2008,
+ct46,Elephant Island,Southern ellie,MUELBERT,2009,
+ct47,Dumont D'Urville,Weddell seal,HINDELL,2009,DDU
+ct48,Cape Shirreff. Antarc,Southern ellie,COSTA,2009,
+ct49,South Georgia,Southern ellie,FEDAK,2009,
+ct50,Marion Island,,BESTER,2009,
+ct51,California,Northern ellie,COSTA,2009,
+ct52,Jan Mayen,Pv,NPOLAR,2009,
+ct53,Ano Nuevo. California,Northern ellie,COSTA,2009,
+ct54,King George Is. Antar,,BESTER-AWI,2010,
+ct55,St Johns,Blueback hood,HAMMILL,2010,
+ct56,Elephant Island,Southern ellie,MUELBERT,2009,
+ct57,South Shetland Island,Leopard seal,GOEBEL,2010,
+ct58,South Georgia,Southern ellie,FEDAK,2009,
+ct59,Alaska,Northern fur seal,SPRINGER,2009,
+ct6,Macquarie,Southern ellie,HINDELL,2005,
+ct61,Australia,Sea lion,SARDI,2009,
+ct62,Kerguelen,Southern ellie,GUINET,2010,PAF
+ct63,Ross Sea McMurdo,Weddell seal,COSTA,2010,
+ct64,Macquarie,Southern ellie,IMOS,2010,
+ct65,Falklands,Southern ellie,FEDAK,2010,
+ct67,California,Northern ellie,COSTA,2010,
+ct68,Marion Island,,AWI,2010,
+ct69,Svalbard,Pv,NPOLAR,2010,
+ct7,Kerguelen,Southern ellie,GUINET,2005,PAF
+ct70,Weddell Sea,,NICHOLLS,2011,
+ct71,W Greenland,Ringed seal,HOLLAND,2010,
+ct73,Marion Island,,BESTER-AWI,2011,
+ct74,Ross Sea McMurdo,Weddell seal,COSTA,2011,
+ct75,Dumont D'Urville,Weddell seal,HINDELL,2011,DDU
+ct76,South Australia,Sea lion,SARDI,2011,
+ct77,Casey,Southern ellie,IMOS,2012,
+ct78d,Davis,Southern ellie,IMOS,2011,
+ct79,Campbell,Southern ellie,IMOS,2012,
+ct8,South Georgia,Southern ellie,FEDAK,2005,
+ct80,Okhotsk,Ribbon seal,OHSHIMA,2011,
+ct81,Svalbard,Bearded seal,NPOLAR,2011,
+ct82,Kerguelen,Southern ellie,GUINET,2011,PAF
+ct83,South Shetland Island,Weddell seal,GOEBEL,2014,
+ct84,Kerguelen,Southern ellie,GUINET,2012,PAF
+ct85,Scott Base,Weddell seal,IMOS,2014,
+ct86,South Australia,Sea lion,SARDI,2011,
+ct87,Marion Island,,AWI,2012,
+ct88,Ross Sea McMurdo,Weddell seal,COSTA,2012,
+ct89,Ano Nuevo. California,Northern ellie,BLOCK,2012,
+ct9,Antarctic,Southern ellie,COSTA,2005,
+ct90,Marion Island,Southern ellie,BESTER,2012,
+ct91,South Australia,Fur seal,IMOS,2012,
+ct92,Svalbard,Bearded seal,NPOLAR,2012,
+ct93,Svalbard,Ringed seal,NPOLAR,2012,
+ct94,Svalbard,Ringed seal,NPOLAR,2012,
+ct95,Kerguelen,Southern ellie,GUINET,2012,PAF
+ct96,Kerguelen,Southern ellie,IMOS,2013,PAF
+ct97,Kerguelen,Southern ellie,GUINET,2013,PAF
+ct98,Kerguelen,Southern ellie,IMOS,2013,PAF
+ct99,Marion Island,,AWI,2013,
+eb03,Beaufort Sea,Bearded seal,STANTEC,2015,
+eb04,Beaufort Sea,Spotted seal,STANTEC,2016,
+ft01,Kerguelen,Southern ellie,GUINET,2007,PAF
+ft02,Kerguelen,Southern ellie,GUINET,2009,PAF
+ft03,Kerguelen,Southern ellie,GUINET,2009,PAF
+ft04,Kerguelen,Southern ellie,GUINET,2010,PAF
+ft05,Svalbard,Ringed seal,NPOLAR,2010,
+ft06,Kerguelen,Southern ellie,GUINET,2010,PAF
+ft07,Kerguelen,Southern ellie,GUINET,2011,PAF
+ft08,Svalbard,Ringed seal,NPOLAR,2011,
+ft09,California,Northern ellie,COSTA,2011,
+ft10,Kerguelen,Southern ellie,GUINET,2011,PAF
+ft11,Kerguelen,Southern ellie,GUINET,2012,PAF
+ft12,Kerguelen,Southern ellie,GUINET,2012,PAF
+ft13,Australia. West Islan,Sea lion,SARDI,2013,
+ft14,Kerguelen,Southern ellie,GUINET,2013,PAF
+ft15,French Guyana,Green turtle,IPHC,2013,
+ft17,French Guyana,Green turtle,IPHC,2014,
+ft18,Kerguelen,Southern ellie,GUINET,2016,PAF
+ft20,Naples,Loggerhead turtle,HOCHSCHEID,2016,
+ft21,SNI.California,Northern ellie,COSTA,2018,
+ft22,Kerguelen,Southern ellie,GUINET,2018,PAF
+ft23,Peninsula Valdes,Southern ellie,GUINET,2018,P.Del.
+ft24,Kerguelen,Southern ellie,HINDELL,2018,PAF
+ft25,Weddell Sea,Weddell seal,NPOLAR,2018,
+ft26,California,Northern ellie,COSTA,2019,
+hd08,Canada,Hooded seal,DFOMont-Joli,2018,
+hd09,Canada,Hoods,DFOMont-Joli,2019,
+hd2bb,Canada,Bluebacks,HAMMILL,2004,
+hd2f,Canada,Hoods,HAMMILL,2004,
+hd2g,Canada,Hoods greenland,HAMMILL,2004,
+hd3,Canada,Hoods,HAMMILL,2008,
+hd5bb,Canada,Bluebacks,HAMMILL,2006,
+hd6,Canada,Hoods greenland,HAMMILL,2007,
+hg19,Canada,Grey seal,HAMMILL,2008,
+hg37,Tromso,Hg,NINA,2012,
+hg37g,Tromso,Hg,NINA,2012,
+hg4,Canada,Grey,HAMMILL,2004,
+hg42,Tromso,Hg,NINA,2015,
+hg47,Baltic,Hg,ROQUET,2016,
+hg9,Canada,Sable Grey,HAMMILL,2007,
+hp2,Canada,Harps,HAMMILL,2004,
+kp01,Davis,Southern ellie,IMOS,2017,
+pv52,pv52,pv52,pv52,pv52,
+rs11,Canada,Ringed seal,HAMMILL,2012,
+rs14,Ilulissat. Greenland,Ringed seal,HOLLAND,2012,
+rs15,Ilulissat. Greenland,Ringed seal,HOLLAND,2012,
+rs17,Ilulissat. Greenland,Ringed seal,HOLLAND,2013,
+rs18,Canada,Ringed seal,HAMMILL,2013,
+rs19,Ilulissat. Greenland,Ringed seal,HOLLAND,2013,
+rs22,Sermilik. Greenland,Ringed seal,HOLLAND,2014,
+rs23,Sermilik. Greenland,Ringed seal,HOLLAND,2015,
+rs27,Sermilik. Greenland,Ringed seal,HOLLAND,2015,
+rs28,rs28,rs28,rs28,rs28,
+rs29,Sermilik. Greenland,Ringed seal,HOLLAND,2016,
+rs31,Sermilik. Greenland,Ringed seal,HOLLAND,2017,
+rs32,Greenland,Ringed seal,GINR,2017,
+rs34,Ilulissat. Greenland,Ringed seal,HOLLAND,2018,
+rs6,Canada,Ringed seal,HAMMILL,2010,
+rs9,Canada,Ringed seal,HAMMILL,2011,
+vc03,vc03,vc03,vc03,vc03,
+vc04,vc04,vc04,vc04,vc04,
+wd04,Davis,Weddell seal,HINDELL,2011,
+wd06,Weddell Sea,,AWI,2014,
+wd07,Weddell Sea,Weddell seal,AWI,2016,
+wd09,Weddell Sea,Weddell seal,CNRSPEPS,2017,
+wd1,Davis,Weddell seal,HINDELL,2006,
+wd10,Dumont D'Urville,Weddell seal,CNRSPEPS,2017,DDU
+wd11,Weddell Sea,Weddell seal,CNRSPEPS,2018,
+wd12,Dumont D'Urville,Weddell seal,CNRSPEPS,2020,DDU
+wd13,Dumont D'Urville,Weddell seal,CNRSPEPS,2019,DDU
+wd3,Dumont D'Urville,Weddell seal,HINDELL,2007,DDU
