@@ -1,24 +1,18 @@
-
 %% script metadata
-
+%
 % ----------------------------------------------------------------------
 %%%%%%%%%% SCRIPT ACTIONS %%%%%%%%%%
 % display the names of the tags to use
-
+%
 %%%%%%%%%% REFERENCES %%%%%%%%%%
-
+%
 %%%%%%%%%% DEPENDANT SCRIPTS (previously created variables) %%%%%%%%%%
 % none
-
-%%%%%%%%%% MATLAB VERSION %%%%%%%%%%
-disp('***MATLAB version information***')
-disp(strcat('script: MATLAB version 9.10.0.1669831 (R2021a) Update 2'))
-disp(['current MATLAB version:' version])
-
+%
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
 % J. Weis (jw)
-% last modified: 22.10.31
+% last modified: 22/03/2024
 % 
 % -----------------------------------------------------------------------
 
@@ -27,8 +21,8 @@ disp(['current MATLAB version:' version])
 plfrm_temp = 's' ;
 platform_type = 'sealtag' ;
 DEPS_METADATA_temp  = readtable([root_data_seal 'DEP_METADATA.csv']) ;         
-dataset_type = 'fr' ;      
-fold_info = dir(strcat(root_data,'*',dataset_type,'1_prof.nc')) ;
+dataset_type = 'lr' ;      
+fold_info = dir(strcat(root_data,'*.nc')) ;
 
 %% Base station
 

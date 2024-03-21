@@ -1,18 +1,18 @@
 %% script metadata
-
+%
 % ----------------------------------------------------------------------
 %%%%%%%%%% SCRIPT ACTIONS %%%%%%%%%%
 % set default parameters for project
-
+%
 %%%%%%%%%% DEPENDANT SCRIPTS (previously created variables) %%%%%%%%%%
 % sesf000_define_platform
 % sesf00x
-
+%
 %%%%%%%%%% MATLAB VERSION %%%%%%%%%%
 % disp('***MATLAB version information***')
 % disp(strcat('script: MATLAB version 9.10.0.1669831 (R2021a) Update 2'))
 % disp(['current MATLAB version:' version])
-
+%
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
 % J. Weis (jw)

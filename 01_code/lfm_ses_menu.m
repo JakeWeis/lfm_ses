@@ -1,5 +1,5 @@
-%% script metadata
-
+%% lfm_ses_menu
+%
 % ----------------------------------------------------------------------
 %%%%%%%%%% SCRIPT ACTIONS %%%%%%%%%%
 % This set of routines predicts Chla from Kd from marine mammal data
@@ -8,23 +8,26 @@
 % runs data pre-processing,
 % runs Linear Functional Model prediction
 % saves the output
-
+%
 %%%%%%%%%% REFERENCES %%%%%%%%%%
-
+%
 %%%%%%%%%% DEPENDANT SCRIPTS (previously created variables) %%%%%%%%%%
 % none
-
+%
 %%%%%%%%%% MATLAB VERSION %%%%%%%%%%
-disp('***MATLAB version information***')
-disp(strcat('script: MATLAB version 9.10.0.1669831 (R2021a) Update 2'))
-disp(['current MATLAB version:' version])
-
+% disp('***MATLAB version information***')
+% disp(strcat('script: MATLAB version 9.10.0.1669831 (R2021a) Update 2'))
+% disp(['current MATLAB version:' version])
+%
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
 % J. Weis (jw)
-% last modified: 24.03.21
+% last modified: 22/03/2024
 % 
-% -----------------------------------------------------------------------
+% 22/03/2024 update: 
+% - Outsourced input data (file sizes too large to push to GitHub)
+% - Removed ETOPO file and disabled bathymetry preprocessing steps for the same reason
+% -------------------------------------------------------------------------
 
 %% clear all and define root folder for project
 
@@ -35,26 +38,26 @@ disp(['current MATLAB version:' version])
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    EDIT SECTION  - Edit this section to tailor your environment
 
-% root folder
-root_proj   = pwd ; % current
-
-% separator character for folder path
-sep = '/' ; % linux separator for folder path
-% sep = '\' ; % windows separator for folder path
+% root folder and input data directory
+root_proj  = '/Users/jweis/MATLAB-Drive/Polynya PD/LFM_SES';
+root_input = '/Volumes/PhData/PD DATA/MEOP-CTD_2024-03-08/SUBSET/FL_ft24';
 
 % working folders
-root_proj           = [root_proj sep] ;
-root_data_seal      = [root_proj '00_data' sep '01_seal' sep] ;
-root_data_float     = [root_proj '00_data' sep '02_float' sep] ;
-root_data_cruise    = [root_proj '00_data' sep '03_cruise' sep] ;
-root_data_workspace = [root_proj '00_data' sep '04_workspace' sep] ;
-root_code           = [root_proj '01_code' sep] ;
-root_lib            = [root_proj '02_library' sep] ;
-root_plots          = [root_proj '06_plots' sep] ;
-root_data_input     = [root_proj '07_transfer_data' sep 'input_data' sep] ;
-root_data_output    = [root_proj '07_transfer_data' sep 'output_data' sep] ;
-root_data           = root_data_input ;
-
+if ~strcmp(root_proj(end),filesep)
+    root_proj       = [root_proj filesep];
+end
+if ~strcmp(root_input(end),filesep)
+    root_input      = [root_input filesep];
+end
+root_data_seal      = [root_proj '00_data' filesep '01_seal' filesep];
+root_data_float     = [root_proj '00_data' filesep '02_float' filesep];
+root_data_cruise    = [root_proj '00_data' filesep '03_cruise' filesep];
+root_data_workspace = [root_proj '00_data' filesep '04_workspace' filesep];
+root_code           = [root_proj '01_code' filesep];
+root_lib            = [root_proj '02_library' filesep];
+root_plots          = [root_proj '06_plots' filesep];
+root_data_output    = [root_proj '07_transfer_data' filesep 'output_data' filesep];
+root_data           = root_input;
 %% display tag names
 
 sesf000_display_tags_names
@@ -108,7 +111,7 @@ for iTag = 1:numel(fold_info)
     
     sesf011_gen_data_preprocess1_trip_distance
     sesf012_gen_data_preprocess2_set_fixed_vert_grid
-    sesf013_gen_data_preprocess3_bathy
+    % sesf013_gen_data_preprocess3_bathy
 
 
     %% WITH A DRINK: a few talks about density

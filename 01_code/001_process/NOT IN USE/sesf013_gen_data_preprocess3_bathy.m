@@ -1,5 +1,7 @@
 %% script metadata
-
+%
+% SCRIPT TEMPORARILY DISABLED (SEE CHANGE LOG FOR FURTHER INFORMATION)
+%
 % ----------------------------------------------------------------------
 %%%%%%%%%% SCRIPT ACTIONS %%%%%%%%%%
 % compute bathymetry along platform trajectory
@@ -22,10 +24,10 @@
 % disp(strcat('script: MATLAB version 9.10.0.1669831 (R2021a) Update 2'))
 % disp(['current MATLAB version:' version])
 
-%%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
+% +++ CHANGE LOG +++
 % L. Le Ster (lls)
 % J. Weis (jw)
-% last modified: 22.03.29
+% last modified: 22/03/2024
 % 
 % 20.07.01 update: adding logical for bathy > min model bathy threshold
 % 20.07.31 updates:
@@ -44,6 +46,10 @@
 % 22.03.29 update: modifying computation of idx013 bathy min index (taking
 % profile depth into consideration and extending to largest interval, case
 % no location available)
+% 22/03/2024 update: (jw)
+% Script temporarily disabled: The ETOPO1 file (bathymetry shapefile) is too 
+% large preventing pushing to GitHub, will aim to find a solution at some point
+% (e.g. GIT LFS)
 %
 % -----------------------------------------------------------------------
 

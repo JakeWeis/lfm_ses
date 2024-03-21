@@ -1,18 +1,18 @@
 %% script metadata
-
+%
 % ----------------------------------------------------------------------
 %%%%%%%%%% SCRIPT ACTIONS %%%%%%%%%%
 % load platform data
-
+%
 %%%%%%%%%% DEPENDANT SCRIPTS (previously created variables) %%%%%%%%%%
 % sesf000_define platform.m
 % sesf001_choose_your_menu
-
+%
 %%%%%%%%%% MATLAB VERSION %%%%%%%%%%
 % disp('***MATLAB version information***')
 % disp(strcat('script: MATLAB version 9.10.0.1669831 (R2021a) Update 2'))
 % disp(['current MATLAB version:' version])
-
+%
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
 % J. Weis (jw)
@@ -42,7 +42,7 @@ switch platform_type
         % load structure with all fields
         platform = ncload_struct([root_data tagRef]) ;
     otherwise
-        disp('WARNING: platform is nor sealtag nor float')
+        disp('WARNING: platform is neither sealtag nor float')
 end
 
 % display platform dataset properties and platform metadata
