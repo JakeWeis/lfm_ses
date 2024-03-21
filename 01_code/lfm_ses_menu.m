@@ -28,8 +28,8 @@ disp(['current MATLAB version:' version])
 %% clear all and define root folder for project
 
 % clear all / close all
-clear all
-close all
+% clear all
+% close all
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    EDIT SECTION  - Edit this section to tailor your environment

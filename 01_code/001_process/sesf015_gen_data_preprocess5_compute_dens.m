@@ -15,9 +15,9 @@
 % sesf012_gen_data_preprocess2_set_fixed_vert_grid
 
 %%%%%%%%%% MATLAB VERSION %%%%%%%%%%
-disp('***MATLAB version information***')
-disp(strcat('script: MATLAB version 9.10.0.1669831 (R2021a) Update 2'))
-disp(['current MATLAB version:' version])
+% disp('***MATLAB version information***')
+% disp(strcat('script: MATLAB version 9.10.0.1669831 (R2021a) Update 2'))
+% disp(['current MATLAB version:' version])
 
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)

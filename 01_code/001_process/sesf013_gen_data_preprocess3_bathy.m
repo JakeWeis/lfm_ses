@@ -18,9 +18,9 @@
 % sesf010_set_date_pressure_arrays
 
 %%%%%%%%%% MATLAB VERSION %%%%%%%%%%
-disp('***MATLAB version information***')
-disp(strcat('script: MATLAB version 9.10.0.1669831 (R2021a) Update 2'))
-disp(['current MATLAB version:' version])
+% disp('***MATLAB version information***')
+% disp(strcat('script: MATLAB version 9.10.0.1669831 (R2021a) Update 2'))
+% disp(['current MATLAB version:' version])
 
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
