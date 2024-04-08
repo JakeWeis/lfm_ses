@@ -46,7 +46,7 @@ switch platform_type
 end
 
 % display platform dataset properties and platform metadata
-ncdisp([root_data tagRef]) ;
+% ncdisp([root_data tagRef]) ;
 
 
 %% all datasets do not have LATITUDE_ADJUSTED/LONGITUDE_ADJUSTED fields

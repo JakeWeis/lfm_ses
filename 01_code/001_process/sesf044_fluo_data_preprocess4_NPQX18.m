@@ -129,7 +129,7 @@ flags_temp = nan(np_tot,1) ;
 % NPQ LAYER MIGHT BE THINNER
 flags_temp(exp(parData.subsurVal) < 15) = 1 ;
 % SHALLOW MIXING CONDITIONS
-flags_temp(genData.MLDphy(ii_temp) <= parData.quenchDepth) = 2 ;
+flags_temp(genData.MLDphy <= parData.quenchDepth) = 2 ;
 % NIGHT PROFILE
 flags_temp(idx035_lightDay == 0) = 7 ;
 % BOTTOM OF NPQ LAYER NOT REACHED

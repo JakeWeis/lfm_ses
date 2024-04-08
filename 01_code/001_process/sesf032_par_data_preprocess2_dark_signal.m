@@ -65,12 +65,12 @@ PAR_nadNonLogRegDk_temp = PAR_nadNonLogReg ;
 
 %% define subset of processed profiles
 
-% select a few profiles per day for dark correction: the nProfiles deepest per day
+% select n profiles per day for dark correction: the nProfiles deepest per day
 % nProfilesPerDay_dark is set in script sesf004
 
 % starting index of each deployment day Nº
 [unVal_temp,unInd_temp] = unique(genData.depDayNo) ;
-% compute 5 deepest per day
+% compute n deepest per day
 [deepestPerDayVal_temp,deepestPerDayInd_temp] =...
     arrayfun(@(a) maxk(parData.lastNonNan(genData.depDayNo == a),nProfilesPerDay_dark),...
     unVal_temp,'UniformOutput',false) ;
@@ -78,7 +78,8 @@ PAR_nadNonLogRegDk_temp = PAR_nadNonLogReg ;
 deepestPerDayIndCorr_temp = arrayfun(@(a) deepestPerDayInd_temp{a} + unInd_temp(a) - 1,...
     1:numel(unVal_temp),'UniformOutput',false) ;
 % concatenate indexes in one array
-deepestPerDayIndCorr_temp = horzcat(deepestPerDayIndCorr_temp{1:end}) ;
+% deepestPerDayIndCorr_temp = horzcat(deepestPerDayIndCorr_temp{1:end}) ;
+deepestPerDayIndCorr_temp = vertcat(deepestPerDayIndCorr_temp{1:end}) ;
 deepestPerDayIndCorr_temp = deepestPerDayIndCorr_temp(:) ;
 % sort indexes
 deepestPerDayIndCorr_temp = sort(deepestPerDayIndCorr_temp,'ascend') ;
@@ -155,7 +156,7 @@ for iProfile_temp = find(indexes_temp).'
         case 1
             % (use of min to exclude case where ind_cst_temp corresponds to
             % last value of profile)
-            PAR_nadNonLogRegDk(min(ind_cst_temp + 1,max_depth):end,iProfile_temp) = NaN ;
+            PAR_nadNonLogRegDk(min(ind_cst_temp,max_depth):end,iProfile_temp) = NaN ;
     end
 
 
@@ -260,9 +261,13 @@ parData.darkVal = fillmissing(parData.darkVal,'nearest') ;
 %% correct PAR profiles with dark value
 
 % compute mask of dark signal
-darkNaNMask_temp = arrayfun(@(a) vertcat(false(a - 1,1),true(max_depth - a + 1,1)),...
-    parData.darkDepth.','UniformOutput',false) ;
-darkNaNMask_temp = horzcat(darkNaNMask_temp{1:end}) ;
+if ~any(isnan(parData.darkDepth))
+    darkNaNMask_temp = arrayfun(@(a) vertcat(false(a - 1,1),true(max_depth - a + 1,1)),...
+        parData.darkDepth.','UniformOutput',false) ;
+    darkNaNMask_temp = horzcat(darkNaNMask_temp{1:end}) ;
+else
+    darkNaNMask_temp = ones(size(PAR_nadNonLogReg));
+end
 
 % set dark noise to NaN according to dark mask
 PAR_nadNonLogRegDk(darkNaNMask_temp) = NaN ;

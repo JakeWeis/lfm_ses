@@ -39,10 +39,14 @@ surfFluoVal_temp = FLUO_nadRegDkNpq(1,:).' ;
 %% surf as mean in first optical depth (penetration depth Zpd) - for satellite matchup
 
 zpd_temp = floor(fillmissing(parData.Zpd,'nearest')) ;
-meanFluoZpd_temp = nan(platform_metadata.np,1) ;
-meanFluoZpd_temp(idx041_chlaNonNan) =...
-    arrayfun(@(a) mean(FLUO_nadRegDkNpq(1:zpd_temp(a),a),'omitnan'),...
-    find(idx041_chlaNonNan)) ;
+if ~any(isnan(zpd_temp))
+    meanFluoZpd_temp = nan(platform_metadata.np,1) ;
+    meanFluoZpd_temp(idx041_chlaNonNan) =...
+        arrayfun(@(a) mean(FLUO_nadRegDkNpq(1:zpd_temp(a),a),'omitnan'),...
+        find(idx041_chlaNonNan)) ;
+else
+    meanFluoZpd_temp = NaN(size(zpd_temp));
+end
 
 %% mean Fluo in MLD
 zmld_temp = fillmissing(genData.MLDphy,'nearest') ;

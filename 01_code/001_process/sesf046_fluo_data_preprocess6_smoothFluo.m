@@ -108,39 +108,45 @@ end
 
 
 %% COMPUTE FIT ON A FIXED INTERVAL
-% SELECT PROFILES TO COMPUTE
-fluoToFitBnd_temp = FLUO_nadRegDkNpq ;
-idxBnd_temp =...
-    find_ndim(~isnan(fluoToFitBnd_temp),1,'first') <= min_topIntegBound &...
-    find_ndim(~isnan(fluoToFitBnd_temp),1,'last') >= min_botIntegBound ;
-idx046_chlaFDAfitBnd =...
-    idxBnd_temp.' &...
-    idx000_genProfileSelec &...
-    idx041_chlaNonNan ;
-indFitBnd_temp = find(idx046_chlaFDAfitBnd) ;
+% +++++++++         DISABLED UNTIL FURTHER NOTICE          +++++++++++++++++++
+% +++++++++ ISSUE WITH DATA2FD INPUT RESULTING IN AN ERROR +++++++++++++++++++
 
-% DATA2FD PARAMETERS
-% depth interval
-pp_temp = (min_topIntegBound:1:min_botIntegBound).' ;
-% Data to fit/convert to fd object
-fluoToFd_temp = fluoToFitBnd_temp(pp_temp,indFitBnd_temp) ;
-% define basis
-nbaz_temp = nbaz ;
-nord_temp = nord ;
-wbasis_temp = mybL ;
-
-% FIT
-vecfdBnd_temp = data2fd(pp_temp,fluoToFd_temp,wbasis_temp) ;
-
-% EVAL FIT
-fluoFdaFitBnd_temp(pp_temp,indFitBnd_temp) = eval_fd(vecfdBnd_temp,pp_temp) ;
-fluo_fdBndCoefs(:,indFitBnd_temp) = getcoef(vecfdBnd_temp) ;
+% % SELECT PROFILES TO COMPUTE
+% fluoToFitBnd_temp = FLUO_nadRegDkNpq ;
+% idxBnd_temp =...
+%     find_ndim(~isnan(fluoToFitBnd_temp),1,'first') <= min_topIntegBound &...
+%     find_ndim(~isnan(fluoToFitBnd_temp),1,'last') >= min_botIntegBound ;
+% idx046_chlaFDAfitBnd =...
+%     idxBnd_temp.' &...
+%     idx000_genProfileSelec &...
+%     idx041_chlaNonNan ;
+% indFitBnd_temp = find(idx046_chlaFDAfitBnd) ;
+% 
+% % DATA2FD PARAMETERS
+% % depth interval
+% pp_temp = (min_topIntegBound:1:min_botIntegBound).' ;
+% % Data to fit/convert to fd object
+% fluoToFd_temp = fluoToFitBnd_temp(pp_temp,indFitBnd_temp) ;
+% % define basis
+% nbaz_temp = nbaz ;
+% nord_temp = nord ;
+% wbasis_temp = mybL ;
+% 
+% % FIT
+% vecfdBnd_temp = data2fd(pp_temp,fluoToFd_temp,wbasis_temp) ;
+% 
+% % EVAL FIT
+% fluoFdaFitBnd_temp(pp_temp,indFitBnd_temp) = eval_fd(vecfdBnd_temp,pp_temp) ;
+% fluo_fdBndCoefs(:,indFitBnd_temp) = getcoef(vecfdBnd_temp) ;
 
 
 %% write data
 % FLUO_nadRegDkNpqSth = fluoSthMean7_temp ;
 FLUO_nadRegDkNpqFitAll = fluoFdaFitAll_temp ;
-FLUO_nadRegDkNpqFitBnd = fluoFdaFitBnd_temp ;
+
+% +++++++++         DISABLED UNTIL FURTHER NOTICE          +++++++++++++++++++
+% +++++++++ ISSUE WITH DATA2FD INPUT RESULTING IN AN ERROR +++++++++++++++++++
+% FLUO_nadRegDkNpqFitBnd = fluoFdaFitBnd_temp ;
 
 
 %% visual check

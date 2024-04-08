@@ -40,7 +40,8 @@
 
 % root folder and input data directory
 root_proj  = '/Users/jweis/MATLAB-Drive/Polynya PD/LFM_SES';
-root_input = '/Volumes/PhData/PD DATA/MEOP-CTD_2024-03-08/SUBSET/FL_ft24';
+root_input = '/Volumes/PhData/PD DATA/MEOP-CTD_2024-03-08/SUBSET/FLUO_LIGHT';
+% root_input = '/Volumes/PhData/PD DATA/test_data';
 
 % working folders
 if ~strcmp(root_proj(end),filesep)
@@ -103,7 +104,7 @@ for iTag = 1:numel(fold_info)
     toBeRemoved_temp = vertcat(toBeRemoved_temp{1:end}) ;
     toBeRemoved_temp = sum(toBeRemoved_temp) ;
     toBeRemoved_temp = logical(toBeRemoved_temp) ;
-%     toBeRemoved_temp = [] ;
+    toBeRemoved_temp = [] ;
     idx000_genProfileSelec(toBeRemoved_temp) = false ;
     genData.depDayNo(toBeRemoved_temp) = NaN ;
     genData.depDayNo = genData.depDayNo - min(genData.depDayNo) + 1 ;
@@ -111,7 +112,7 @@ for iTag = 1:numel(fold_info)
     
     sesf011_gen_data_preprocess1_trip_distance
     sesf012_gen_data_preprocess2_set_fixed_vert_grid
-    % sesf013_gen_data_preprocess3_bathy
+    sesf013_gen_data_preprocess3_bathy
 
 
     %% WITH A DRINK: a few talks about density
@@ -135,7 +136,6 @@ for iTag = 1:numel(fold_info)
     sesf033_par_data_preprocess3_saturation
     sesf036_par_data_preprocess6_functionalFit
     sesf037_par_data_preprocess7_postMetrics
-
 
     %% SALAD: fluorescence
 

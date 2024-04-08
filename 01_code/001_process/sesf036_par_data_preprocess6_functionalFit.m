@@ -115,41 +115,43 @@ idx036_lightFDAfitBnd =...
     idx035_lightDay ;
 indFitBnd_temp = find(idx036_lightFDAfitBnd) ;
 
-% DATA2FD PARAMETERS
-% depth interval
-pp_temp = (min_topIntegBound:1:min_botIntegBound).' ;
-% Data to fit/convert to fd object
-lumToFdBnd_temp = lumToFitBnd_temp(pp_temp,indFitBnd_temp) ;
-% define basis
-nbaz_temp = nbaz ;
-nord_temp = nord ;
-wbasis_temp = mybL ;
-% set up functional parameter object
-cvecBnd_temp = zeros(nbaz_temp,length(indFitBnd_temp)) ;
-Lfdobj_temp    = 1  ;    %  original value in script = 2 ; penalize curvature of acceleration
-lambda_temp    = 0.08  ; %  smoothing parameter %10^(-0.1)
-Wfd0_temp  = fd(cvecBnd_temp, wbasis_temp) ;
-proffdPar_temp = fdPar(Wfd0_temp,Lfdobj_temp,lambda_temp) ;
+% proceed only if any profiles were found to have finite PAR data within the specified bounds (5–200m)
+if ~isempty(indFitBnd_temp)
+    % DATA2FD PARAMETERS
+    % depth interval
+    pp_temp = (min_topIntegBound:1:min_botIntegBound).' ;
+    % Data to fit/convert to fd object
+    lumToFdBnd_temp = lumToFitBnd_temp(pp_temp,indFitBnd_temp) ;
+    % define basis
+    nbaz_temp = nbaz ;
+    nord_temp = nord ;
+    wbasis_temp = mybL ;
+    % set up functional parameter object
+    cvecBnd_temp = zeros(nbaz_temp,length(indFitBnd_temp)) ;
+    Lfdobj_temp    = 1  ;    %  original value in script = 2 ; penalize curvature of acceleration
+    lambda_temp    = 0.08  ; %  smoothing parameter %10^(-0.1)
+    Wfd0_temp  = fd(cvecBnd_temp, wbasis_temp) ;
+    proffdPar_temp = fdPar(Wfd0_temp,Lfdobj_temp,lambda_temp) ;
 
-% compute monotone fit
-[~, ~, vecfdBnd_temp, ~, ~, ~, ~] =...
-    smooth_monotone(pp_temp,lumToFdBnd_temp,proffdPar_temp) ;
-% EVAL FIT
-parFdaFitBnd_temp(pp_temp,indFitBnd_temp) = eval_fd(vecfdBnd_temp,pp_temp) ;
+    % compute monotone fit
+    [~, ~, vecfdBnd_temp, ~, ~, ~, ~] =...
+        smooth_monotone(pp_temp,lumToFdBnd_temp,proffdPar_temp) ;
+    % EVAL FIT
+    parFdaFitBnd_temp(pp_temp,indFitBnd_temp) = eval_fd(vecfdBnd_temp,pp_temp) ;
 
-% write data
-PAR_nadLogRegDkSaFitBnd = parFdaFitBnd_temp ;
-par_fdBndCoefs(:,indFitBnd_temp) = getcoef(vecfdBnd_temp) ;
+    % write data
+    PAR_nadLogRegDkSaFitBnd = parFdaFitBnd_temp ;
+    par_fdBndCoefs(:,indFitBnd_temp) = getcoef(vecfdBnd_temp) ;
 
-% derive PAR data to get Kd
-% compute fd derivative of lum_fd object
-KdBndFD_temp = deriv_fd(vecfdBnd_temp) ;
-Kd_Bnd(pp_temp,indFitBnd_temp) = eval_fd(KdBndFD_temp,pp_temp) ;
+    % derive PAR data to get Kd
+    % compute fd derivative of lum_fd object
+    KdBndFD_temp = deriv_fd(vecfdBnd_temp) ;
+    Kd_Bnd(pp_temp,indFitBnd_temp) = eval_fd(KdBndFD_temp,pp_temp) ;
 
-% recover coefficients of computed functional object
-% reconstitute array with total dataset size
-KdFDcoefs(:,indFitBnd_temp) = getcoef(KdBndFD_temp) ;
-
+    % recover coefficients of computed functional object
+    % reconstitute array with total dataset size
+    KdFDcoefs(:,indFitBnd_temp) = getcoef(KdBndFD_temp) ;
+end
 
 
 %% compute non-log arrays

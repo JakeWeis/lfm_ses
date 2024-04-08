@@ -22,7 +22,7 @@
 %%%%%%%%%% AUTHOR / LAST MODIFIED %%%%%%%%%%
 % L. Le Ster (lls)
 % J. Weis (jw)
-% last modified: 22.04.14
+% last modified: 22/03/2024
 % 
 % 20.02.11 update: addition of test to avoid error
 % if no CHLA_ADJUSTED field
@@ -48,6 +48,7 @@
 % 22.04.06 update: renaming L_adxxx into PAR_nadxxx
 % 22.04.14 update: TEMP and PSAL input are set to _ADJUSTED fields (contain
 % density inversion correction algorithm by MEOP team)
+% 
 % 
 % -----------------------------------------------------------------------
 
@@ -103,100 +104,28 @@ switch platform_metadata.platform_type
                 % interpolate FLUO/LIGHT/TEMP/PSAL
                 % separate cases for TEMP and SAL / FLUO / LIGHT
                 % in order to skip loop if no FLUO/LIGHT field in dataset
-
                 
                 %%%%%%%%%%%%%%%%%%%%%%%%%
                 % TEMP and SAL
                 %%%%%%%%%%%%%%%%%%%%%%%%%
                 for ii_temp = 1:np_tot
-                    disp(strcat('TEMP/SAL regularization -',...
-                        ' profile nº',int2str(ii_temp),'/',int2str(np_tot)))
-
+                    % +++++ UPDATED REGULARISATION USING INTERP1 +++++
                     % pressure vector for profile i (irregular step)
-                    pres_to_reg_temp = platform.PRES(:,ii_temp) ;
+                    pres_to_reg_temp = platform.PRES(:,ii_temp);
+                    pres_nan = ~isfinite(pres_to_reg_temp);
+                    pres_to_reg_temp(pres_nan) = [];
 
-                    
-                    %%%%%%%%%%%%%%%%%%%%%%%%%
                     % TEMP
-                    %%%%%%%%%%%%%%%%%%%%%%%%%
-                    % vector to be regularized
-                    vect_to_reg_temp = platform.TEMP_ADJUSTED(:,ii_temp) ;
-                    % output regularized vector
-                    regularized_profile_temp = nan(max_depth_dataset,1) ;
-                    % write in output vector where data is available
-                    for jj_temp = 1:length(pres_to_reg_temp)
-                        dpth_temp = pres_to_reg_temp(jj_temp) ;
-                            if isnan(dpth_temp)
-                            else
-                                regularized_profile_temp(pres_to_reg_temp(jj_temp)) = vect_to_reg_temp(jj_temp) ;
-                            end
-                    end
-                    % use fillmissing to overwrite nans between available data
-                    regularized_profile_temp = fillmissing(regularized_profile_temp,...
-                        'linear') ;
-                    % first/last non nan value of profile
-                    firstLastNonNanPres_temp = find(~isnan(vect_to_reg_temp)) ;
-                    if isempty(firstLastNonNanPres_temp)
-                        firstLastNonNanPres_temp = nan(1,2) ;
-                    else
-                        firstLastNonNanPres_temp = pres_to_reg_temp(firstLastNonNanPres_temp) ;
-                    end
-                    first_non_nan_dpth_temp = firstLastNonNanPres_temp(1) ;
-                    last_non_nan_dpth_temp = firstLastNonNanPres_temp(end) ;
-                    % overwrite with nans all values below last non nan depth
-                    if last_non_nan_dpth_temp < max_depth_dataset
-                        regularized_profile_temp(last_non_nan_dpth_temp + 1:end) = NaN ;
-                    end
-                    % same with all values above first non nan depth
-                    % overwrite with nans all values above first non nan depth
-                    if first_non_nan_dpth_temp > 1
-                        regularized_profile_temp(1:first_non_nan_dpth_temp-1) = NaN ;
-                    end
-
-                    % write in data matrix
-                    TEMP(:,ii_temp) = regularized_profile_temp ;
+                    vect_to_reg_temp = platform.TEMP_ADJUSTED(:,ii_temp);
+                    vect_to_reg_temp(pres_nan) = [];
+                    regularized_profile_temp = 1 : ceil(max_depth_dataset);
+                    TEMP(:,ii_temp) = interp1(pres_to_reg_temp(1:end-1),vect_to_reg_temp(1:end-1),regularized_profile_temp,'linear')';
                     
-                    
-                    
-                    %%%%%%%%%%%%%%%%%%%%%%%%%
                     % SAL
-                    %%%%%%%%%%%%%%%%%%%%%%%%%
-                    % vector to be regularized
-                    vect_to_reg_temp = platform.PSAL_ADJUSTED(:,ii_temp) ;
-                    % output regularized vector
-                    regularized_profile_temp = nan(max_depth_dataset,1) ;
-                    % write in output vector where data is available
-                    for jj_temp = 1:length(pres_to_reg_temp)
-                        dpth_temp = pres_to_reg_temp(jj_temp) ;
-                            if isnan(dpth_temp)
-                            else
-                                regularized_profile_temp(pres_to_reg_temp(jj_temp)) = vect_to_reg_temp(jj_temp) ;
-                            end
-                    end
-                    % use fillmissing to overwrite nans between available data
-                    regularized_profile_temp = fillmissing(regularized_profile_temp,...
-                        'linear') ;
-                    % first/last non nan value of profile
-                    firstLastNonNanPres_temp = find(~isnan(vect_to_reg_temp)) ;
-                    if isempty(firstLastNonNanPres_temp)
-                        firstLastNonNanPres_temp = nan(1,2) ;
-                    else
-                        firstLastNonNanPres_temp = pres_to_reg_temp(firstLastNonNanPres_temp) ;
-                    end
-                    first_non_nan_dpth_temp = firstLastNonNanPres_temp(1) ;
-                    last_non_nan_dpth_temp = firstLastNonNanPres_temp(end) ;
-                    % overwrite with nans all values below last non nan depth
-                    if last_non_nan_dpth_temp < max_depth_dataset
-                        regularized_profile_temp(last_non_nan_dpth_temp + 1:end) = NaN ;
-                    end
-                    % same with all values above first non nan depth
-                    % overwrite with nans all values above first non nan depth
-                    if first_non_nan_dpth_temp > 1
-                        regularized_profile_temp(1:first_non_nan_dpth_temp-1) = NaN ;
-                    end
-
-                    % write in data matrix
-                    SAL(:,ii_temp) = regularized_profile_temp ;
+                    vect_to_reg_temp = platform.PSAL_ADJUSTED(:,ii_temp);
+                    vect_to_reg_temp(pres_nan) = [];
+                    regularized_profile_temp = 1 : ceil(max_depth_dataset);
+                    SAL(:,ii_temp) = interp1(pres_to_reg_temp(1:end-1),vect_to_reg_temp(1:end-1),regularized_profile_temp,'linear')';
                     
                 end
                 
@@ -209,51 +138,18 @@ switch platform_metadata.platform_type
                 if isfield(platform,'CHLA_ADJUSTED') == 0
                     % no FLUO field to regularize
 %                     FLUO_nadReg = nan(max_depth_dataset,np_tot) ;
-                    disp('*****************************no FLUO in dataset')
+                    disp('No FLUO in dataset')
                 else
                     for ii_temp = 1:np_tot
-                        disp(strcat('FLUO regularization -',...
-                            ' profile nº',int2str(ii_temp),'/',int2str(np_tot)))
-
                         % pressure vector for profile i (irregular step)
-                        pres_to_reg_temp = platform.PRES(:,ii_temp) ;
-
-                        % vector to be regularized
-                        vect_to_reg_temp = platform.CHLA(:,ii_temp) ;
-                        % output regularized vector
-                        regularized_profile_temp = nan(max_depth_dataset,1) ;
-                        % write in output vector where data is available
-                        for jj_temp = 1:length(pres_to_reg_temp)
-                            dpth_temp = pres_to_reg_temp(jj_temp) ;
-                                if isnan(dpth_temp)
-                                else
-                                    regularized_profile_temp(pres_to_reg_temp(jj_temp)) = vect_to_reg_temp(jj_temp) ;
-                                end
-                        end
-                        % use fillmissing to overwrite nans between available data
-                        regularized_profile_temp = fillmissing(regularized_profile_temp,...
-                            'linear') ;
-                        % first/last non nan value of profile
-                        firstLastNonNanPres_temp = find(~isnan(vect_to_reg_temp)) ;
-                        if isempty(firstLastNonNanPres_temp)
-                            firstLastNonNanPres_temp = nan(1,2) ;
-                        else
-                            firstLastNonNanPres_temp = pres_to_reg_temp(firstLastNonNanPres_temp) ;
-                        end
-                        first_non_nan_dpth_temp = firstLastNonNanPres_temp(1) ;
-                        last_non_nan_dpth_temp = firstLastNonNanPres_temp(end) ;
-                        % overwrite with nans all values below last non nan depth
-                        if last_non_nan_dpth_temp < max_depth_dataset
-                            regularized_profile_temp(last_non_nan_dpth_temp + 1:end) = NaN ;
-                        end
-                        % same with all values above first non nan depth
-                        % overwrite with nans all values above first non nan depth
-                        if first_non_nan_dpth_temp > 1
-                            regularized_profile_temp(1:first_non_nan_dpth_temp-1) = NaN ;
-                        end
-
-                        % write in data matrix
-                        FLUO_nadReg(:,ii_temp) = regularized_profile_temp ;
+                        pres_to_reg_temp = platform.PRES(:,ii_temp);
+                        pres_nan = ~isfinite(pres_to_reg_temp);
+                        pres_to_reg_temp(pres_nan) = [];
+                        
+                        vect_to_reg_temp = platform.CHLA_ADJUSTED(:,ii_temp);
+                        vect_to_reg_temp(pres_nan) = [];
+                        regularized_profile_temp = 1 : ceil(max_depth_dataset);
+                        FLUO_nadReg(:,ii_temp) = interp1(pres_to_reg_temp(1:end-1),vect_to_reg_temp(1:end-1),regularized_profile_temp,'linear')';
                         
                     end
                     
@@ -269,51 +165,21 @@ switch platform_metadata.platform_type
                     % no LIGHT field to regularize
 %                     PAR_nadLogReg = nan(max_depth_dataset,np_tot) ;
 %                     PAR_nadLogReg = nan(max_depth_dataset,np_tot) ;
-                    disp('*****************************no LIGHT in dataset')
+                    disp('No LIGHT in dataset')
                 else
                     for ii_temp = 1:np_tot
-                    disp(strcat('LIGHT regularization -',...
-                        ' profile nº',int2str(ii_temp),'/',int2str(np_tot)))
+                    % disp(strcat('LIGHT regularization -',...
+                    %     ' profile nº',int2str(ii_temp),'/',int2str(np_tot)))
 
                         % pressure vector for profile i (irregular step)
-                        pres_to_reg_temp = platform.PRES(:,ii_temp) ;
-
-                        % vector to be regularized
-                        vect_to_reg_temp = platform.LIGHT(:,ii_temp) ;
-                        % output regularized vector
-                        regularized_profile_temp = nan(max_depth_dataset,1) ;
-                        % write in output vector where data is available
-                        for jj_temp = 1:length(pres_to_reg_temp)
-                            dpth_temp = pres_to_reg_temp(jj_temp) ;
-                                if isnan(dpth_temp)
-                                else
-                                    regularized_profile_temp(pres_to_reg_temp(jj_temp)) = vect_to_reg_temp(jj_temp) ;
-                                end
-                        end
-                        % use fillmissing to overwrite nans between available data
-                        regularized_profile_temp = fillmissing(regularized_profile_temp,...
-                            'linear') ;
-                        % first/last non nan value of profile
-                        firstLastNonNanPres_temp = find(~isnan(vect_to_reg_temp)) ;
-                        if isempty(firstLastNonNanPres_temp)
-                            firstLastNonNanPres_temp = nan(1,2) ;
-                        else
-                            firstLastNonNanPres_temp = pres_to_reg_temp(firstLastNonNanPres_temp) ;
-                        end
-                        first_non_nan_dpth_temp = firstLastNonNanPres_temp(1) ;
-                        last_non_nan_dpth_temp = firstLastNonNanPres_temp(end) ;
-                        % overwrite with nans all values below last non nan depth
-                        if last_non_nan_dpth_temp < max_depth_dataset
-                            regularized_profile_temp(last_non_nan_dpth_temp + 1:end) = NaN ;
-                        end
-                        % same with all values above first non nan depth
-                        % overwrite with nans all values above first non nan depth
-                        if first_non_nan_dpth_temp > 1
-                            regularized_profile_temp(1:first_non_nan_dpth_temp-1) = NaN ;
-                        end
-
-                        % write in data matrix
-                         PAR_nadLogReg(:,ii_temp) = regularized_profile_temp ;
+                        pres_to_reg_temp = platform.PRES(:,ii_temp);
+                        pres_nan = ~isfinite(pres_to_reg_temp);
+                        pres_to_reg_temp(pres_nan) = [];
+                        
+                        vect_to_reg_temp = platform.CHLA_ADJUSTED(:,ii_temp);
+                        vect_to_reg_temp(pres_nan) = [];
+                        regularized_profile_temp = 1 : ceil(max_depth_dataset);
+                        PAR_nadLogReg(:,ii_temp) = interp1(pres_to_reg_temp(1:end-1),vect_to_reg_temp(1:end-1),regularized_profile_temp,'linear')';
                         
                     end
                     

@@ -106,7 +106,7 @@ disp(strcat('user-defined deepest value:',{' '},int2str(max_depth),'m'))
 
 
 % other depth parameters
-min_topIntegBound = 5 ;    % minimum upper boundary (surface) required for profiles to be imported in linear functional model
+min_topIntegBound = 50 ;    % minimum upper boundary (surface) required for profiles to be imported in linear functional model
 min_botIntegBound = 200 ;   % minimum lower boundary (bottom) required for profiles to be imported in linear functional model
 
 % minimum profile depth
@@ -205,7 +205,7 @@ platform_metadata.pcaDataPath = root_data_seal ;
 %% Bathymetry database to be used
 
 platform_metadata.bathyDataPath =...
-    [root_proj '00_data' sep '00_sat_maps_coastline_bathymetry' sep 'ETOPO1' sep] ;
+    [root_proj '00_data' filesep '00_sat_maps_coastline_bathymetry' filesep 'ETOPO1' filesep] ;
 platform_metadata.bathyDataFileName =...
     'etopo1_bed_c_f4.flt' ;
 % ETOPO1
@@ -223,7 +223,7 @@ minProfDepthOpenOcean = - 500 ; % (meters)
 %% satellite map to be used
 
 platform_metadata.satMapPath =...
-    [root_proj '00_data' sep '00_sat_maps_coastline_bathymetry' sep 'CMEMS' sep] ;
+    [root_proj '00_data' filesep '00_sat_maps_coastline_bathymetry' filesep 'CMEMS' filesep] ;
 
 OcCorrFactorMerged = 5.942344745608111 ;
 
