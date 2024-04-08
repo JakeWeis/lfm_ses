@@ -182,13 +182,16 @@ end
 idxDeepest_temp = find_ndim(~isnan(TEMP),1,'last').' ;
 idxNull_temp = idxDeepest_temp == 0 ;
 idxDeepest_temp(idxDeepest_temp == 0) = 1 ;
-idxDeepest_temp = sub2ind(size(PRES),idxDeepest_temp,[1:platform_metadata.np].') ;
-deepestMeasPerProfile_temp = nan(platform_metadata.np,1) ;
-deepestMeasPerProfile_temp(~isnan(idxDeepest_temp)) =...
-    PRES(idxDeepest_temp(~isnan(idxDeepest_temp))) ;
+finiteIndices = find(isfinite(idxDeepest_temp));
+% idxDeepest_temp = sub2ind(size(PRES),idxDeepest_temp,[1:platform_metadata.np].') ;
+% deepestMeasPerProfile_temp = nan(platform_metadata.np,1) ;
+% deepestMeasPerProfile_temp(~isnan(idxDeepest_temp)) =...
+%     PRES(idxDeepest_temp(~isnan(idxDeepest_temp))) ;
+% +++++++++++ FIXING SUB2IND ISSUE ++++++++++++++
+deepestMeasPerProfile_temp = NaN(platform_metadata.np,1);
+deepestMeasPerProfile_temp(finiteIndices,1) = - arrayfun(@(x) PRES(idxDeepest_temp(x), x), finiteIndices);
 deepestMeasPerProfile_temp(idxNull_temp) = 0 ;
-deepestMeasPerProfile_temp = - deepestMeasPerProfile_temp ;
-
+% deepestMeasPerProfile_temp = - deepestMeasPerProfile_temp ;
 
 %% PLOT BATHYMETRY + MAX MEASURED DEPTHS
 

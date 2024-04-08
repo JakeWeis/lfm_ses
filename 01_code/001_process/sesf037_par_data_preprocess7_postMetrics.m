@@ -47,13 +47,17 @@ disp(strcat('PAR data pre-processing step7: post-processing METRICS / platform:'
 
 
 %% new subsurface value (functional fit)
-subsurIndexes_temp = sub2ind(size(PAR_nadLogRegDkSaFitAll),...
-    parData.saturationDepth,...
-    transpose(1:platform_metadata.np)) ;
-subsurValues_temp = nan(platform_metadata.np,1) ;
-subsurValues_temp(~isnan(subsurIndexes_temp)) =...
-    PAR_nadLogRegDkSaFitAll(subsurIndexes_temp(~isnan(subsurIndexes_temp))) ;
-parData.subsurValFit = subsurValues_temp ;
+% subsurIndexes_temp = sub2ind(size(PAR_nadLogRegDkSaFitAll),...
+%     parData.saturationDepth,...
+%     transpose(1:platform_metadata.np)) ;
+% subsurValues_temp = nan(platform_metadata.np,1) ;
+% subsurValues_temp(~isnan(subsurIndexes_temp)) =...
+%     PAR_nadLogRegDkSaFitAll(subsurIndexes_temp(~isnan(subsurIndexes_temp))) ;
+% parData.subsurValFit = subsurValues_temp ;
+% +++++++++++ FIXING SUB2IND ISSUE ++++++++++++++
+finiteIndices = find(isfinite(parData.saturationDepth));
+parData.subsurValFit = NaN(platform_metadata.np,1);
+parData.subsurValFit(finiteIndices,1) = arrayfun(@(x) PAR_nadLogRegDkSaFitAll(parData.saturationDepth(x), x), finiteIndices);
 
 
 %% compute euphotic depth
@@ -105,7 +109,7 @@ parData.meanKd = meanKd_temp ;
 
 % mean Kd ML
 meanKdML_temp = arrayfun(@(a) mean(...
-    - diff(PAR_nadLogRegDkSaFitAll(max(1,parData.saturationDepth(a)):min(genData.MLDphy,1000),a)),...
+    - diff(PAR_nadLogRegDkSaFitAll(max(1,parData.saturationDepth(a)):min(genData.MLDphy(a),1000),a)),...
     'omitnan'),...
     1:length(platform.LATITUDE)).' ;
 

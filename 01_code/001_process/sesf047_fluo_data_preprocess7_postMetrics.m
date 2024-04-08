@@ -50,10 +50,14 @@ end
 
 %% mean Fluo in MLD
 zmld_temp = fillmissing(genData.MLDphy,'nearest') ;
-meanFluoZmld_temp = nan(platform_metadata.np,1) ;
-meanFluoZmld_temp(idx041_chlaNonNan) =...
-    arrayfun(@(a) mean(FLUO_nadRegDkNpqFitBnd(1:zmld_temp(a),a),'omitnan'),...
-    find(idx041_chlaNonNan)) ;
+if ~any(isnan(zmld_temp))
+    meanFluoZmld_temp = nan(platform_metadata.np,1) ;
+    meanFluoZmld_temp(idx041_chlaNonNan) =...
+        arrayfun(@(a) mean(FLUO_nadRegDkNpqFitBnd(1:zmld_temp(a),a),'omitnan'),...
+        find(idx041_chlaNonNan)) ;
+else
+    meanFluoZmld_temp = NaN(size(zmld_temp)); 
+end
 
 
 %% max/depth of max -> based on smoothed profile
@@ -62,15 +66,18 @@ meanFluoZmld_temp(idx041_chlaNonNan) =...
 % depth of max -> based on smoothed profile
 [maxOfFFit_temp,maxFluoDepth_temp] = max(FLUO_nadRegDkNpqFitAll,[],1) ;
 % unsmoothed max value of Chl-a -> retrieve corresponding unsmoothed value
-maxFluoIndexes_temp = sub2ind(size(FLUO_nadRegDkNpq),...
-    maxFluoDepth_temp.',...
-    transpose(1:platform_metadata.np)) ;
-maxFluoValues_temp = nan(platform_metadata.np,1) ;
-maxFluoValues_temp(~isnan(maxFluoIndexes_temp)) =...
-    FLUO_nadRegDkNpq(maxFluoIndexes_temp(~isnan(maxFluoIndexes_temp))) ;
-maxFluoDepth_temp(~idx041_chlaNonNan) = NaN ;
-
-
+% maxFluoIndexes_temp = sub2ind(size(FLUO_nadRegDkNpq),...
+%     maxFluoDepth_temp.',...
+%     transpose(1:platform_metadata.np)) ;
+% maxFluoValues_temp = nan(platform_metadata.np,1) ;
+% maxFluoValues_temp(~isnan(maxFluoIndexes_temp)) =...
+%     FLUO_nadRegDkNpq(maxFluoIndexes_temp(~isnan(maxFluoIndexes_temp))) ;
+% maxFluoDepth_temp(~idx041_chlaNonNan) = NaN ;
+% +++++++++++ FIXING SUB2IND ISSUE ++++++++++++++
+maxFluoDepth_temp(~idx041_chlaNonNan) = NaN;
+finiteIndices = find(isfinite(maxFluoDepth_temp));
+maxFluoValues_temp = NaN(platform_metadata.np,1);
+maxFluoValues_temp(finiteIndices,1) = arrayfun(@(x) FLUO_nadRegDkNpq(maxFluoDepth_temp(x), x), finiteIndices);
 
 %% int FLUO
 % use of FLUO_nadRegDkNpqFitAll

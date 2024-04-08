@@ -38,20 +38,26 @@ disp(strcat('CHLA_LFM data post-processing METRICS / platform:',...
 surfChlaVal_temp = CHLA_LFM(1,:).' ;
 
 %% surf as mean in first optical depth (penetration depth Zpd) - for satellite matchup
-
 zpd_temp = floor(fillmissing(parData.Zpd,'nearest')) ;
-meanChlaZpd_temp = nan(platform_metadata.np,1) ;
-meanChlaZpd_temp(idx036_lightFDAfitBnd) =...
-    arrayfun(@(a) mean(CHLA_LFM(1:zpd_temp(a),a),'omitnan'),...
-    find(idx036_lightFDAfitBnd)) ;
+if ~any(isnan(zpd_temp))
+    meanChlaZpd_temp = nan(platform_metadata.np,1) ;
+    meanChlaZpd_temp(idx036_lightFDAfitBnd) =...
+        arrayfun(@(a) mean(CHLA_LFM(1:zpd_temp(a),a),'omitnan'),...
+        find(idx036_lightFDAfitBnd)) ;
+else
+    meanChlaZpd_temp = NaN(size(zpd_temp));;
+end
 
 %% mean Chla in MLD
 zmld_temp = fillmissing(genData.MLDphy,'nearest') ;
-meanChlaZmld_temp = nan(platform_metadata.np,1) ;
-meanChlaZmld_temp(idx036_lightFDAfitBnd) =...
-    arrayfun(@(a) mean(CHLA_LFM(1:zmld_temp(a),a),'omitnan'),...
-    find(idx036_lightFDAfitBnd)) ;
-
+if ~any(isnan(zmld_temp))
+    meanChlaZmld_temp = nan(platform_metadata.np,1) ;
+    meanChlaZmld_temp(idx036_lightFDAfitBnd) =...
+        arrayfun(@(a) mean(CHLA_LFM(1:zmld_temp(a),a),'omitnan'),...
+        find(idx036_lightFDAfitBnd)) ;
+else
+    meanChlaZmld_temp = NaN(size(zmld_temp));;
+end
 
 %% max/depth of max -> based on smoothed profile
 % use of CHLA_adRegDkNpqOc + CHLA_adRegDkNpqOcFitAll
@@ -59,15 +65,18 @@ meanChlaZmld_temp(idx036_lightFDAfitBnd) =...
 % depth of max -> based on smoothed profile
 [maxOfFFit_temp,maxChlaDepth_temp] = max(CHLA_LFM,[],1) ;
 % unsmoothed max value of Chl-a -> retrieve corresponding unsmoothed value
-maxChlaIndexes_temp = sub2ind(size(CHLA_LFM),...
-    maxChlaDepth_temp.',...
-    transpose(1:platform_metadata.np)) ;
-maxChlaValues_temp = nan(platform_metadata.np,1) ;
-maxChlaValues_temp(~isnan(maxChlaIndexes_temp)) =...
-    CHLA_LFM(maxChlaIndexes_temp(~isnan(maxChlaIndexes_temp))) ;
-maxChlaDepth_temp(~idx036_lightFDAfitBnd) = NaN ;
-
-
+% maxChlaIndexes_temp = sub2ind(size(CHLA_LFM),...
+%     maxChlaDepth_temp.',...
+%     transpose(1:platform_metadata.np)) ;
+% maxChlaValues_temp = nan(platform_metadata.np,1) ;
+% maxChlaValues_temp(~isnan(maxChlaIndexes_temp)) =...
+%     CHLA_LFM(maxChlaIndexes_temp(~isnan(maxChlaIndexes_temp))) ;
+% maxChlaDepth_temp(~idx036_lightFDAfitBnd) = NaN ;
+% +++++++++++ FIXING SUB2IND ISSUE ++++++++++++++
+maxChlaDepth_temp(~idx036_lightFDAfitBnd) = NaN;
+finiteIndices = find(isfinite(maxChlaDepth_temp));
+maxChlaValues_temp = NaN(platform_metadata.np,1);
+maxChlaValues_temp(finiteIndices,1) = arrayfun(@(x) CHLA_LFM(maxChlaDepth_temp(x), x), finiteIndices);
 
 %% int Chla
 % use of CHLA_adRegDkNpqOcFitAll

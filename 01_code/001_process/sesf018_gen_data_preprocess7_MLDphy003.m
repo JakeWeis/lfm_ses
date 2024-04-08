@@ -49,19 +49,28 @@ idxMinProfileStart_temp = genData.firstNonNan <= minProfileStartDepth_temp ;
 % index of first value below refDepth depth (default = 10 m)
 refDepthIdxVec_temp = find_ndim(PRES >= refDepth_temp & ~isnan(TEMP),1,'first').' ;
 refDepthIdxVec_temp(refDepthIdxVec_temp == 0) = NaN ;
+finiteIndices = find(isfinite(refDepthIdxVec_temp));
+
 % reference depth value
-refDepthIndexes_temp = sub2ind(size(PRES),...
-    refDepthIdxVec_temp,...
-    transpose(1:np_tot)) ;
-refDepthValues_temp = nan(np_tot,1) ;
-refDepthValues_temp(~isnan(refDepthIndexes_temp)) =...
-    PRES(refDepthIndexes_temp(~isnan(refDepthIndexes_temp))) ;
-refDepthValues_temp(~idxMinProfileStart_temp) = NaN ;
+% refDepthIndexes_temp = sub2ind(size(PRES),...
+%     refDepthIdxVec_temp,...
+%     transpose(1:np_tot)) ;
+% refDepthValues_temp = nan(np_tot,1) ;
+% refDepthValues_temp(~isnan(refDepthIndexes_temp)) =...
+%     PRES(refDepthIndexes_temp(~isnan(refDepthIndexes_temp))) ;
+% refDepthValues_temp(~idxMinProfileStart_temp) = NaN ;
+% +++++++++++ FIXING SUB2IND ISSUE ++++++++++++++
+refDepthValues_temp = NaN(platform_metadata.np,1);
+refDepthValues_temp(finiteIndices,1) = arrayfun(@(x) PRES(refDepthIdxVec_temp(x), x), finiteIndices);
+
 
 % reference density value
-refDensValues_temp = nan(np_tot,1) ;
-refDensValues_temp(~isnan(refDepthIndexes_temp)) =...
-    densArrayforMLDComputation_temp(refDepthIndexes_temp(~isnan(refDepthIndexes_temp))) ;
+% refDensValues_temp = nan(np_tot,1) ;
+% refDensValues_temp(~isnan(refDepthIndexes_temp)) =...
+%     densArrayforMLDComputation_temp(refDepthIndexes_temp(~isnan(refDepthIndexes_temp))) ;
+% +++++++++++ FIXING SUB2IND ISSUE ++++++++++++++
+refDensValues_temp = NaN(platform_metadata.np,1);
+refDensValues_temp(finiteIndices,1) = arrayfun(@(x) densArrayforMLDComputation_temp(refDepthIdxVec_temp(x), x), finiteIndices);
 
 % compute sigma0
 % (potential density referenced to the surface)
@@ -73,13 +82,9 @@ mldIndex_temp = find_ndim(sigma0_temp > densThreshold_temp &...
     PRES > refDepth_temp, 1, 'first').' ;
 mldIndex_temp(mldIndex_temp == 0) = NaN ;
 % mld depth value
-mldIndexes_temp = sub2ind(size(PRES),...
-    mldIndex_temp,...
-    transpose(1:np_tot)) ;
-mldValues_temp = nan(np_tot,1) ;
-mldValues_temp(~isnan(mldIndexes_temp)) =...
-    PRES(mldIndexes_temp(~isnan(mldIndexes_temp))) ;
-
+mldValues_temp = NaN(platform_metadata.np,1);
+finiteIndices = find(isfinite(mldIndex_temp));
+mldValues_temp(finiteIndices,1) = arrayfun(@(x) PRES(mldIndex_temp(x), x), finiteIndices);
 
 genData.MLD003 = mldValues_temp ;
 

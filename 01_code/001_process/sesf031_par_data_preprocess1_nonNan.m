@@ -87,14 +87,17 @@ parData.firstNonNan(parData.firstNonNan == 0) = NaN ;
 parData.lastNonNan = find_ndim(~isnan(larray_temp),1,'last').' ;
 parData.lastNonNan(parData.lastNonNan == 0) = NaN ;
 
-
 % subsurface value
-subsurIndexes_temp = sub2ind(size(larray_temp),...
-    parData.firstNonNan,...
-    transpose(1:platform_metadata.np)) ;
-subsurValues_temp = nan(platform_metadata.np,1) ;
-subsurValues_temp(~isnan(subsurIndexes_temp)) =...
-    larray_temp(subsurIndexes_temp(~isnan(subsurIndexes_temp))) ;
+% subsurIndexes_temp = sub2ind(size(larray_temp),...
+%     parData.firstNonNan,...
+%     transpose(1:platform_metadata.np)) ;
+% subsurValues_temp = nan(platform_metadata.np,1) ;
+% subsurValues_temp(~isnan(subsurIndexes_temp)) =...
+%     larray_temp(subsurIndexes_temp(~isnan(subsurIndexes_temp))) ;
+subsurValues_temp = NaN(platform_metadata.np,1);
+finiteIndices = find(isfinite(parData.firstNonNan));
+subsurValues_temp(finiteIndices,1) = arrayfun(@(x) larray_temp(parData.firstNonNan(x), x), finiteIndices);
+
 switch platform_metadata.platform_type   
     case 'sealtag'
         parData.subsurVal = subsurValues_temp ;
