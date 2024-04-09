@@ -63,6 +63,14 @@ root_data           = root_input;
 
 sesf000_display_tags_names
 
+%% Load ETOPO Global Relief Model
+% NOAA National Centers for Environmental Information (2022). ETOPO 2022 60 Arc-Second Global Relief Model. 
+% DOI: https://doi.org/10.25921/fd45-gt74. Accessed 19/03/2024.
+disp('Loading ETOPO 2022 Global Relief Model...')
+[bathymetry.data, bathymetry.ref] = readgeoraster([root_proj, '00_data', filesep, '00_etopo', filesep, 'ETOPO_2022_v1_60s_N90W180_bed.tif']);
+bathymetry.data = flipud(bathymetry.data);
+bathymetry.lon = bathymetry.ref.LongitudeLimits(1) : bathymetry.ref.CellExtentInLongitude : bathymetry.ref.LongitudeLimits(2) - bathymetry.ref.CellExtentInLongitude;
+bathymetry.lat = bathymetry.ref.LatitudeLimits(1) : bathymetry.ref.CellExtentInLatitude : bathymetry.ref.LatitudeLimits(2) - bathymetry.ref.CellExtentInLatitude;
 
 %% data processing steps
 
@@ -73,7 +81,7 @@ for iTag = 1:numel(fold_info)
     close all
     clearvars -except iTag fold_info* root_*...
         platform_type base_station dataset_type...
-        sep
+        sep bathymetry
     
     %% load platform
     

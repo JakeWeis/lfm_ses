@@ -205,9 +205,9 @@ platform_metadata.pcaDataPath = root_data_seal ;
 %% Bathymetry database to be used
 
 platform_metadata.bathyDataPath =...
-    [root_proj '00_data' filesep '00_sat_maps_coastline_bathymetry' filesep 'ETOPO1' filesep] ;
+    [root_proj '00_data' filesep '00_etopo' filesep] ;
 platform_metadata.bathyDataFileName =...
-    'etopo1_bed_c_f4.flt' ;
+    'ETOPO_2022_v1_30s_N90W180_bed.tif' ;
 % ETOPO1
 % https://www.ngdc.noaa.gov/mgg/global/
 % Cite ETOPO1: doi:10.7289/V5C8276M

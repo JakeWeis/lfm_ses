@@ -57,126 +57,115 @@ disp(strcat('computing BATHYMETRY data along trajectory for platform:',...
     platform_metadata.platform_name,'.....'))
 
 
-
 %% Read ETOPO file within the specified latLim and lonLim limits
-% "BATHY" is data grid, an array of elevations
-% "refvec_temp" is the three-element referencing vector
-sampleFactor_temp = 1 ;
-[BATHY, refvec_temp] = etopo(...
-    [platform_metadata.bathyDataPath platform_metadata.bathyDataFileName],...
-	sampleFactor_temp,...
-	platform_metadata.latLim,...
-	platform_metadata.lonLim) ;
-
+% Extract bathymetry data within platform lat/lon limits from ETOPO dataset
+ilatmin_in_bathy_temp = dsearchn(bathymetry.lat',floor(platform_metadata.geospatial_lat_min));
+ilatmax_in_bathy_temp = dsearchn(bathymetry.lat',ceil(platform_metadata.geospatial_lat_max));
+ilonmin_in_bathy_temp = dsearchn(bathymetry.lon',floor(convlon(platform_metadata.geospatial_lon_min,'signed')));
+ilonmax_in_bathy_temp = dsearchn(bathymetry.lon',ceil(convlon(platform_metadata.geospatial_lon_max,'signed')));
+if platform_metadata.geospatial_lon_max - platform_metadata.geospatial_lon_min < 180
+    BATHY = bathymetry.data(ilatmin_in_bathy_temp:ilatmax_in_bathy_temp, ilonmin_in_bathy_temp:ilonmax_in_bathy_temp);
+    BATHY_lon_temp = bathymetry.lon(ilonmin_in_bathy_temp : ilonmax_in_bathy_temp);
+else
+    % If the lon limits cross 180˚ E/W, the bathymetry subset needs to be pieced together
+    BATHY_E_temp = bathymetry.data(ilatmin_in_bathy_temp:ilatmax_in_bathy_temp, ilonmax_in_bathy_temp:bathymetry.ref.RasterSize(2));
+    BATHY_W_temp = bathymetry.data(ilatmin_in_bathy_temp:ilatmax_in_bathy_temp, 1:ilonmin_in_bathy_temp);
+    BATHY = [BATHY_E_temp,BATHY_W_temp];
+    BATHY_lon_E_temp = bathymetry.lon(ilonmax_in_bathy_temp:bathymetry.ref.RasterSize(2));
+    BATHY_lon_W_temp = bathymetry.data(1:ilonmin_in_bathy_temp);
+    BATHY_lon_temp = [BATHY_lon_E_temp,BATHY_lon_W_temp];
+end
+BATHY_lat_temp = bathymetry.lat(ilatmin_in_bathy_temp : ilatmax_in_bathy_temp);
+lats_temp = BATHY_lat_temp';
+lons_temp = BATHY_lon_temp';
 
 %% PLOT WORLDMAP WITH FOCUS ON REGION OF DATASET + BATHYMETRY DATA
+% TO BE REWRITTEN OR DELETED
 
 switch doPlots
     case 'NO'
         
     case 'YES'
-        % Create figure
-        figure(131)
-        % Construct map axes for region
-        worldmap (platform_metadata.latLim,platform_metadata.lonLim)
-%         % alternatively (example)
-%         worldmap 'South America'
-
-%         % Extract map projection structure from the current map axes
-%         mapProjStruct_temp = gcm ;
-%         mapAxes_temp = gca ;
-
-%         % Define limits for lat and long according to worldmap region
-%         latLim = mapProjStruct_temp.maplatlimit ;
-%         lonLim = mapProjStruct_temp.maplonlimit ;
-
-
-        % Display map data, with extracted etopo value
-        h_temp = geoshow(BATHY, refvec_temp, 'DisplayType', 'texturemap') ;
-
-        % Color the map based on the terrain elevation data, BATHY 
-        demcmap(BATHY, 500);
-        hc_temp = colorbar ;
-        s_temp = ['Elevation (m)'] ;
-        ylabel(hc_temp,s_temp) ;
-
-        % Platform trip
-        plotm(platform.LATITUDE,platform.LONGITUDE,'.k','markersize',4)
-
-        % Add marker on map (ex. for base station)
-        plotm(platform_metadata.base_station_LAT,...
-            platform_metadata.base_station_LON,...
-            'ok','markersize',4,'MarkerFaceColor','k')
-        % Naming on map
-        pointLabel_temp = platform_metadata.base_station ;
-        dx_temp = 0.1 ; dy_temp = 0.1 ; % displacement so the text does not overlay the data points
-        textm(platform_metadata.base_station_LAT + dx_temp,...
-            platform_metadata.base_station_LON + dy_temp,...
-            pointLabel_temp,...
-            'FontSize',8)
-
-%         % set custom map limits
-%         setm(gca,'MapLatLimit',latLim)
-%         setm(gca,'MapLonLimit',lonLim)
-
-%         % display coastlines
-%         load coastlines
-%         [latcells_temp, loncells_temp] = polysplit(coastlat, coastlon);
-%         numel(latcells_temp) ;
-%         plotm(coastlat, coastlon,'-k','LineWidth',0.5)
-%         % better use NOAA Shoreline / Coastline Resources (gshhg)
-        
-        % axes labels, figure title/legend
-        legend({strcat('platform:',platform_metadata.platform_name)},...
-            'Location','southeast')
-        hold off
-        % display figure on full screen
-        set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]) ;
+%         % Create figure
+%         figure(131)
+%         % Construct map axes for region
+%         worldmap (platform_metadata.latLim,platform_metadata.lonLim)
+% %         % alternatively (example)
+% %         worldmap 'South America'
+% 
+% %         % Extract map projection structure from the current map axes
+% %         mapProjStruct_temp = gcm ;
+% %         mapAxes_temp = gca ;
+% 
+% %         % Define limits for lat and long according to worldmap region
+% %         latLim = mapProjStruct_temp.maplatlimit ;
+% %         lonLim = mapProjStruct_temp.maplonlimit ;
+% 
+% 
+%         % Display map data, with extracted etopo value
+%         h_temp = geoshow(BATHY, refvec_temp, 'DisplayType', 'texturemap') ;
+% 
+%         % Color the map based on the terrain elevation data, BATHY 
+%         demcmap(BATHY, 500);
+%         hc_temp = colorbar ;
+%         s_temp = ['Elevation (m)'] ;
+%         ylabel(hc_temp,s_temp) ;
+% 
+%         % Platform trip
+%         plotm(platform.LATITUDE,platform.LONGITUDE,'.k','markersize',4)
+% 
+%         % Add marker on map (ex. for base station)
+%         plotm(platform_metadata.base_station_LAT,...
+%             platform_metadata.base_station_LON,...
+%             'ok','markersize',4,'MarkerFaceColor','k')
+%         % Naming on map
+%         pointLabel_temp = platform_metadata.base_station ;
+%         dx_temp = 0.1 ; dy_temp = 0.1 ; % displacement so the text does not overlay the data points
+%         textm(platform_metadata.base_station_LAT + dx_temp,...
+%             platform_metadata.base_station_LON + dy_temp,...
+%             pointLabel_temp,...
+%             'FontSize',8)
+% 
+% %         % set custom map limits
+% %         setm(gca,'MapLatLimit',latLim)
+% %         setm(gca,'MapLonLimit',lonLim)
+% 
+% %         % display coastlines
+% %         load coastlines
+% %         [latcells_temp, loncells_temp] = polysplit(coastlat, coastlon);
+% %         numel(latcells_temp) ;
+% %         plotm(coastlat, coastlon,'-k','LineWidth',0.5)
+% %         % better use NOAA Shoreline / Coastline Resources (gshhg)
+% 
+%         % axes labels, figure title/legend
+%         legend({strcat('platform:',platform_metadata.platform_name)},...
+%             'Location','southeast')
+%         hold off
+%         % display figure on full screen
+%         set(gcf, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]) ;
         
 end
 
 
 %% COMPUTE BATHYMETRY  + MAXIMUM MEASURED DEPTH FOR EACH PROFILE
-% (WHERE LAT/LON IS AVAILABLE)
-
-% refvec gives northwestern point as reference
-% resolution [deg-1]: refvec(1)
-% northwest corner latitude refvec(2)
-% northwest corner longitude refvec(3)
-
-% create vectors of lat/lon for BATHY grid
-lats_temp = [1:size(BATHY,1)].' ;
-lats_temp = vertcat(0,-lats_temp) ;
-lats_temp = refvec_temp(2) + lats_temp / refvec_temp(1) ;
-lons_temp = [1:size(BATHY,2)].' ;
-lons_temp = vertcat(0,+lons_temp) ;
-lons_temp = refvec_temp(3) + lons_temp / refvec_temp(1) ;
-
 % corresponding platform trajectory latitudes in BATHY LAT grid (lats_temp)
 % (closest values selected)
-idxlats_temp = knnsearch(lats_temp,platform.LATITUDE,...
-    'K',1,...
-    'Distance','euclidean',...
-    'NSMethod','kdtree') ;
+idxlats_temp = dsearchn(lats_temp,platform.LATITUDE);
 idxlats_temp(~idx001_latlonNonNan) = NaN ;
 
 % corresponding platform trajectory longitudes in BATHY LON grid (lons_temp)
 % (closest values selected)
-idxlons_temp = knnsearch(lons_temp,platform.LONGITUDE,...
-    'K',1,...
-    'Distance','euclidean',...
-    'NSMethod','kdtree') ;
+idxlons_temp = dsearchn(lons_temp,platform.LONGITUDE);
 idxlons_temp(~idx001_latlonNonNan) = NaN ;
 
 % Compute bathymetry along platform trajectory
 bathyTrip_temp = nan(np_tot,1) ;
 for ii_temp = 1:np_tot
     if idx001_latlonNonNan(ii_temp) == 1
-        bathyTrip_temp(ii_temp) = BATHY(...
-            max(size(BATHY,1) - idxlats_temp(ii_temp),1),...
-            min(idxlons_temp(ii_temp),size(BATHY,2))) ;
+        bathyTrip_temp(ii_temp) = BATHY(idxlats_temp(ii_temp),idxlons_temp(ii_temp));
     end
 end
+
 
 % max depths measured by platform
 idxDeepest_temp = find_ndim(~isnan(TEMP),1,'last').' ;
@@ -205,7 +194,7 @@ switch doPlots
     case 'NO'
         
     case 'YES'
-        figure(132)
+        figure(132+1)
         plot(bathyTrip_temp,'-k')
         hold on
         plot(deepestMeasPerProfile_temp,'Color',[1 1 1] * 200/255) % light grey
@@ -217,7 +206,7 @@ switch doPlots
         title({'Vertical transect along platform trajectory',...
             strcat('platform:',platform_metadata.platform_name)})
         legend({...
-            strcat('seabed elevation (',platform_metadata.bathyDataFileName(1:6),')'),...
+            strcat('seabed elevation (',platform_metadata.bathyDataFileName(1:end),')'),...
             'platform max depth per profile',...
             'WARNING: platform max depth > bathymetry data'},...
             'Location','southoutside',...
