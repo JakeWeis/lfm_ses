@@ -146,7 +146,7 @@ switch platform_metadata.platform_type
                         pres_nan = ~isfinite(pres_to_reg_temp);
                         pres_to_reg_temp(pres_nan) = [];
                         
-                        vect_to_reg_temp = platform.CHLA_ADJUSTED(:,ii_temp);
+                        vect_to_reg_temp = platform.CHLA(:,ii_temp);
                         vect_to_reg_temp(pres_nan) = [];
                         regularized_profile_temp = 1 : ceil(max_depth_dataset);
                         FLUO_nadReg(:,ii_temp) = interp1(pres_to_reg_temp(1:end-1),vect_to_reg_temp(1:end-1),regularized_profile_temp,'linear')';
@@ -176,7 +176,7 @@ switch platform_metadata.platform_type
                         pres_nan = ~isfinite(pres_to_reg_temp);
                         pres_to_reg_temp(pres_nan) = [];
                         
-                        vect_to_reg_temp = platform.CHLA_ADJUSTED(:,ii_temp);
+                        vect_to_reg_temp = platform.LIGHT(:,ii_temp);
                         vect_to_reg_temp(pres_nan) = [];
                         regularized_profile_temp = 1 : ceil(max_depth_dataset);
                         PAR_nadLogReg(:,ii_temp) = interp1(pres_to_reg_temp(1:end-1),vect_to_reg_temp(1:end-1),regularized_profile_temp,'linear')';
