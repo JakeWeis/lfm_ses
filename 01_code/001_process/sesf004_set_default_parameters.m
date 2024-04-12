@@ -145,7 +145,7 @@ nProfilesPerDay_dark = 5 ;
 
 
 %% default parameters for functional data analysis
-data_temp = load([root_data_seal 'LFMcore.mat']) ;
+data_temp = load([root.data.seal 'LFMcore.mat']) ;
 LFMcore = data_temp.LFMcore ;
 nbaz = 30 ; % number of basis functions in functional space
 nord = 4 ; % order of B-splines
@@ -191,7 +191,7 @@ end
 %% PCA (prey capture atteimpts) data
 
 % read table containing sealtag naming ocrrespondances
-SEAL_REF  = readtable([root_data_seal 'SEAL_REF.csv']) ;
+SEAL_REF  = readtable([root.data.seal 'SEAL_REF.csv']) ;
 % extract name of platform for PCA data
 try
     animalId = SEAL_REF.id_animal(strcmp(SEAL_REF.ref_smru,...
@@ -199,13 +199,13 @@ try
 catch
     animalId = NaN ;
 end
-platform_metadata.pcaDataPath = root_data_seal ;
+platform_metadata.pcaDataPath = root.data.seal ;
 
 
 %% Bathymetry database to be used
 
 platform_metadata.bathyDataPath =...
-    [root_proj '00_data' filesep '00_etopo' filesep] ;
+    [root.proj '00_data' filesep '00_etopo' filesep] ;
 platform_metadata.bathyDataFileName =...
     'ETOPO_2022_v1_30s_N90W180_bed.tif' ;
 % ETOPO1
@@ -223,7 +223,7 @@ minProfDepthOpenOcean = - 500 ; % (meters)
 %% satellite map to be used
 
 platform_metadata.satMapPath =...
-    [root_proj '00_data' filesep '00_sat_maps_coastline_bathymetry' filesep 'CMEMS' filesep] ;
+    [root.proj '00_data' filesep '00_sat_maps_coastline_bathymetry' filesep 'CMEMS' filesep] ;
 
 OcCorrFactorMerged = 5.942344745608111 ;
 

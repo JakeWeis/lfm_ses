@@ -37,16 +37,16 @@ disp(strcat('loading DATA for platform:',...
 switch platform_type
     case 'sealtag'
 	% load structure with all fields
-	platform = ncload_struct([root_data tagRef]) ;
+	platform = ncload_struct([root.input tagRef]) ;
     case 'float'
         % load structure with all fields
-        platform = ncload_struct([root_data tagRef]) ;
+        platform = ncload_struct([root.input tagRef]) ;
     otherwise
         disp('WARNING: platform is neither sealtag nor float')
 end
 
 % display platform dataset properties and platform metadata
-% ncdisp([root_data tagRef]) ;
+% ncdisp([root.input tagRef]) ;
 
 
 %% all datasets do not have LATITUDE_ADJUSTED/LONGITUDE_ADJUSTED fields

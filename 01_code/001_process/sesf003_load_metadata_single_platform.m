@@ -41,17 +41,17 @@ disp(strcat('loading METADATA for platform:',...
 switch platform_type
     case 'sealtag'
         % load tag metadata
-        platform_metadata = ncloadatt_struct([root_data tagRef]) ;
+        platform_metadata = ncloadatt_struct([root.input tagRef]) ;
     case 'float'
         % load platform metadata
         tagMetaRef_temp = strrep(tagRef,'Sprof','meta') ;
-        platform_metadata = ncload_struct([root_data tagMetaRef_temp]) ;
+        platform_metadata = ncload_struct([root.input tagMetaRef_temp]) ;
     otherwise
         disp('WARNING: platform is nor sealtag nor float')
 end
 
 % display platform dataset properties and platform metadata
-% ncdisp([root_data tagRef]) ;
+% ncdisp([root.input tagRef]) ;
 
 
 

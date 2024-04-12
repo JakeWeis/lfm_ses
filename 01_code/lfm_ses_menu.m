@@ -29,58 +29,55 @@
 % - Removed ETOPO file and disabled bathymetry preprocessing steps for the same reason
 % -------------------------------------------------------------------------
 
-%% clear all and define root folder for project
+%% clear all and define project root/input/output directories
+% Get root directory and add to MATLAB path
+root.proj = mfilename('fullpath');
+i_filesep = strfind(root.proj,filesep);
+root.proj(i_filesep(end-1)+1:end) = [];
+addpath(genpath(root.proj))
 
-% clear all / close all
-% clear all
-% close all
+root.data.seal      = [root.proj '00_data' filesep '01_seal' filesep];
+root.data.float     = [root.proj '00_data' filesep '02_float' filesep];
+root.data.cruise    = [root.proj '00_data' filesep '03_cruise' filesep];
+root.data.workspace = [root.proj '00_data' filesep '04_workspace' filesep];
+root.plots          = [root.proj '06_plots' filesep];
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%    EDIT SECTION  - Edit this section to tailor your environment
-
-% root folder and input data directory
-root_proj  = '/Users/jweis/MATLAB-Drive/Polynya PD/LFM_SES';
-root_input = '/Volumes/PhData/PD DATA/MEOP-CTD_2024-03-08/SUBSET/FLUO_LIGHT';
-% root_input = '/Volumes/PhData/PD DATA/test_data';
-
-% working folders
-if ~strcmp(root_proj(end),filesep)
-    root_proj       = [root_proj filesep];
+% input data directory (TO BE SPECIFIED AS INPUT TO)
+% root.input = '/Volumes/PhData/PD DATA/MEOP-CTD_2024-03-08/SUBSET/FLUO_LIGHT';
+root.input          = '/Volumes/PhData/PD DATA/test_data/';
+if ~strcmp(root.input(end),filesep)
+    root.input      = [root.input filesep];
 end
-if ~strcmp(root_input(end),filesep)
-    root_input      = [root_input filesep];
+root.output         = [root.input 'LFM_SES_output' filesep];
+if ~isfolder(root.output)
+    mkdir(root.output)
 end
-root_data_seal      = [root_proj '00_data' filesep '01_seal' filesep];
-root_data_float     = [root_proj '00_data' filesep '02_float' filesep];
-root_data_cruise    = [root_proj '00_data' filesep '03_cruise' filesep];
-root_data_workspace = [root_proj '00_data' filesep '04_workspace' filesep];
-root_code           = [root_proj '01_code' filesep];
-root_lib            = [root_proj '02_library' filesep];
-root_plots          = [root_proj '06_plots' filesep];
-root_data_output    = [root_proj '07_transfer_data' filesep 'output_data' filesep];
-root_data           = root_input;
+
 
 %% display tag names
 
 sesf000_display_tags_names
+% F000_DisplayTagNames(root)
 
 %% Load ETOPO Global Relief Model
-% NOAA National Centers for Environmental Information (2022). ETOPO 2022 60 Arc-Second Global Relief Model. 
+% NOAA National Centers for Environmental Information (2022). ETOPO 2022 60 Arc-Second Global Relief Model.
 % DOI: https://doi.org/10.25921/fd45-gt74. Accessed 19/03/2024.
-disp('Loading ETOPO 2022 Global Relief Model...')
-[bathymetry.data, bathymetry.ref] = readgeoraster([root_proj, '00_data', filesep, '00_etopo', filesep, 'ETOPO_2022_v1_60s_N90W180_bed.tif']);
-bathymetry.data = flipud(bathymetry.data);
-bathymetry.lon = bathymetry.ref.LongitudeLimits(1) : bathymetry.ref.CellExtentInLongitude : bathymetry.ref.LongitudeLimits(2) - bathymetry.ref.CellExtentInLongitude;
-bathymetry.lat = bathymetry.ref.LatitudeLimits(1) : bathymetry.ref.CellExtentInLatitude : bathymetry.ref.LatitudeLimits(2) - bathymetry.ref.CellExtentInLatitude;
+if ~exist('bathymetry','var')
+    disp('Loading ETOPO 2022 Global Relief Model...')
+    [bathymetry.data, bathymetry.ref] = readgeoraster([root.proj, '00_data', filesep, '00_etopo', filesep, 'ETOPO_2022_v1_60s_N90W180_bed.tif']);
+    bathymetry.data = flipud(bathymetry.data);
+    bathymetry.lon = bathymetry.ref.LongitudeLimits(1) : bathymetry.ref.CellExtentInLongitude : bathymetry.ref.LongitudeLimits(2) - bathymetry.ref.CellExtentInLongitude;
+    bathymetry.lat = bathymetry.ref.LatitudeLimits(1) : bathymetry.ref.CellExtentInLatitude : bathymetry.ref.LatitudeLimits(2) - bathymetry.ref.CellExtentInLatitude;
+end
 
 %% data processing steps
 
-for iTag = 1:numel(fold_info)
+for iTag = 1 : numel(fold_info)
 
     
 	%% clean up workspace
     close all
-    clearvars -except iTag fold_info* root_*...
+    clearvars -except iTag fold_info* root*...
         platform_type base_station dataset_type...
         sep bathymetry
     
@@ -194,7 +191,7 @@ for iTag = 1:numel(fold_info)
     
     %% THE BILL: save output, workspace and plots
     sesf997_save_output
-%     sesf998_save_workspace
+    % sesf998_save_workspace
 %     sesf999_save_plots
 
 end

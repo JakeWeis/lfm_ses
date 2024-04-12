@@ -20,9 +20,9 @@
 
 plfrm_temp = 's' ;
 platform_type = 'sealtag' ;
-DEPS_METADATA_temp  = readtable([root_data_seal 'DEP_METADATA.csv']) ;         
+DEPS_METADATA_temp  = readtable([root.data.seal 'DEP_METADATA.csv']) ;         
 dataset_type = 'lr' ;      
-fold_info = dir(strcat(root_data,'*.nc')) ;
+fold_info = dir(strcat(root.input,'*.nc')) ;
 
 %% Base station
 

@@ -45,7 +45,7 @@ if ~any(isnan(zpd_temp))
         arrayfun(@(a) mean(CHLA_LFM(1:zpd_temp(a),a),'omitnan'),...
         find(idx036_lightFDAfitBnd)) ;
 else
-    meanChlaZpd_temp = NaN(size(zpd_temp));;
+    meanChlaZpd_temp = NaN(size(zpd_temp));
 end
 
 %% mean Chla in MLD
@@ -56,7 +56,7 @@ if ~any(isnan(zmld_temp))
         arrayfun(@(a) mean(CHLA_LFM(1:zmld_temp(a),a),'omitnan'),...
         find(idx036_lightFDAfitBnd)) ;
 else
-    meanChlaZmld_temp = NaN(size(zmld_temp));;
+    meanChlaZmld_temp = NaN(size(zmld_temp));
 end
 
 %% max/depth of max -> based on smoothed profile
