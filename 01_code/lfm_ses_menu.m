@@ -1,15 +1,5 @@
-%% lfm_ses_menu
-%
-% ----------------------------------------------------------------------
-%%%%%%%%%% SCRIPT ACTIONS %%%%%%%%%%
-% This set of routines predicts Chla from Kd from marine mammal data
-% This routines controls everything, it
-% imports the tag data,
-% runs data pre-processing,
-% runs Linear Functional Model prediction
-% saves the output
-
 clc
+
 %% Project root/input/output directories
 % Get root directory and add to MATLAB path
 root.proj = mfilename('fullpath');
@@ -64,20 +54,11 @@ for iTag = 1 %: numel(allFiles)
     % Load data
     [platform_data,platform_metadata,platform_processed,genData] = loadData(root,tagRef,defVals,bathymetry);
     
-    % Exclude profiles from processing
-    % exclude_profs = false(platform_metadata.nProfs,1);
-    % genData.processed(exclude_profs) = false;
-    % genData.deployDay(exclude_profs) = NaN;
-    % genData.deployDay = genData.deployDay - min(genData.deployDay) + 1;
 
-    %% PAR
+    % Process PAR data
     [platform_processed,parData] = processPAR(platform_metadata,platform_processed,genData,defVals);
 
-    %% Fluorescence
+    % Process Fluorescence data
     [platform_processed,fluoData] = processFLUO(platform_metadata,platform_processed,genData,defVals,parData);
-    
-    
-    % chlaLFM post-processing metrics
-    % sesf347_chlaLFM_data_postMetrics
        
 end
