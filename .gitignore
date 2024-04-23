@@ -1,4 +1,3 @@
-07_transfer_data/output_data/*.mat
-00_data/00_etopo/CMEMS/.MATLABDriveTag
-00_data/00_etopo/ETOPO1/.MATLABDriveTag
-01_code/001_fprocess/.MATLABDriveTag
+*.mat
+*.MATLABDriveTag
+*.tif
