@@ -9,9 +9,6 @@ addpath(genpath(root.proj))
 
 root.data.seal      = [root.proj '00_data' filesep '01_seal' filesep];
 root.data.float     = [root.proj '00_data' filesep '02_float' filesep];
-root.data.cruise    = [root.proj '00_data' filesep '03_cruise' filesep];
-root.data.workspace = [root.proj '00_data' filesep '04_workspace' filesep];
-root.plots          = [root.proj '06_plots' filesep];
 
 % input data directory (TO BE SPECIFIED AS INPUT TO)
 % root.input = '/Volumes/PhData/PD DATA/MEOP-CTD_2024-03-08/SUBSET/FLUO_LIGHT';
@@ -19,13 +16,13 @@ root.input          = '/Volumes/PhData/PD DATA/MEOP-CTD_2024-03-08/SUBSET/FLUO_L
 if ~strcmp(root.input(end),filesep)
     root.input      = [root.input filesep];
 end
-root.output         = [root.input 'LFM_SES_output' filesep];
+root.output         = [root.input 'processed_output_NEW' filesep];
 if ~isfolder(root.output)
     mkdir(root.output)
 end
 
 %% Setting default processing parameters and loading ETOPO 2022 bathymetry data
-defVals = setDefaults(root);
+defaultPars = setDefaults(root);
 
 if ~exist('bathymetry','var')
     fprintf('Loading <strong>ETOPO 2022 Global Relief Model</strong>...');
@@ -43,8 +40,8 @@ fprintf('\n<strong>Begin processing tags.</strong>\n\n')
 % Iterate through all NetCDF files in the input directory
 allFiles = dirPaths([root.input '*.nc']);
 nTags = numel(allFiles);
-for iTag = 1 %: numel(allFiles)
-    %% Load tag (meta)data
+for iTag = 1 : numel(allFiles)
+    %% Processing
     % Get/display tag name currently being processed
     tagRef = allFiles(iTag).name;
     disp(repmat('-',1,numel(['Processing tag ',num2str(iTag),'/',num2str(nTags),': ',tagRef])))
@@ -52,13 +49,18 @@ for iTag = 1 %: numel(allFiles)
     disp(repmat('-',1,numel(['Processing tag ',num2str(iTag),'/',num2str(nTags),': ',tagRef])))
     
     % Load data
-    [platform_data,platform_metadata,platform_processed,genData] = loadData(root,tagRef,defVals,bathymetry);
+    [tagData,tagMetadata,tagProcessed,ProfileInfo] = loadData(root,tagRef,bathymetry,defaultPars);
     
 
     % Process PAR data
-    [platform_processed,parData] = processPAR(platform_metadata,platform_processed,genData,defVals);
+    [tagProcessed,ProfileInfo_PAR] = processPAR(tagMetadata,tagProcessed,ProfileInfo,defaultPars);
 
     % Process Fluorescence data
-    [platform_processed,fluoData] = processFLUO(platform_metadata,platform_processed,genData,defVals,parData);
+    [tagProcessed,ProfileInfo_FLUO] = processFLUO(tagMetadata,tagProcessed,ProfileInfo,ProfileInfo_PAR,defaultPars);
+
+    %% Save output
+    save([root.output,tagRef(1:end-3),'_PROCESSED.mat'], ...
+        'ProfileInfo','ProfileInfo_PAR','ProfileInfo_FLUO', ...
+        'tagData','tagMetadata','tagProcessed')
        
 end
