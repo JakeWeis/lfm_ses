@@ -157,28 +157,85 @@ if ~all(ProfileInfo_PAR.noData)
     lastObs = find_ndim(isfinite(tagProcessed.PAR.log_RegDrk),1,'last')';
 
     %% Saturation depth
+    % PAR_lin_RegDrkSat = tagProcessed.PAR.lin_RegDrk;
+    % 
+    % for iP = 1 : tagMetadata.nProfs
+    %     % derivative of log dark-corrected PAR
+    %     diffPARlog = diff(PAR_log_RegDrk(:,iP));
+    %     % mean of derivative
+    %     meandiffPARlog = mean(diffPARlog,'omitnan');
+    % 
+    %     % check saturation depth only if profile starts with descrease>mean derivative
+    %     % else no saturation depth and saturation value is defined to maximum PAR value measured
+    %     if isfinite(meandiffPARlog) && diffPARlog(firstObs(iP)) > meandiffPARlog
+    %         Z_saturation = firstObs(iP) + 1;
+    %         while diffPARlog(Z_saturation) >= meandiffPARlog
+    %             Z_saturation = Z_saturation + 1;
+    %         end
+    %         % Remove saturated values
+    %         PAR_lin_RegDrkSat(1 : Z_saturation-1,iP) = NaN;
+    % 
+    %         % Write saturation depth and PAR value to parData table
+    %         ProfileInfo_PAR.SaturationDepth(iP) = -Z_saturation;
+    %         ProfileInfo_PAR.SaturationValue(iP) = PAR_lin_RegDrkSat(Z_saturation,iP);
+    %     end
+    % end
+    % 
+    % % Write to platform_processed structure
+    % tagProcessed.PAR.lin_RegDrkSat = PAR_lin_RegDrkSat;
+    % tagProcessed.PAR.log_RegDrkSat = log(PAR_lin_RegDrkSat);
+    % 
+    % % Update first non-NaN parData table column
+    % firstObs = find_ndim(isfinite(tagProcessed.PAR.lin_RegDrkSat),1,'first')';
+
+    %% Saturation depth (ATLERNATIVE ID METHOD)
     PAR_lin_RegDrkSat = tagProcessed.PAR.lin_RegDrk;
 
-    for iP = 1 : tagMetadata.nProfs
-        % derivative of log dark-corrected PAR
-        diffPARlog = diff(PAR_log_RegDrk(:,iP));
-        % mean of derivative
-        meandiffPARlog = mean(diffPARlog,'omitnan');
+    % Maximum PAR value in each profile and depths at which maxima occur
+    maxPAR = max(PAR_lin_RegDrkSat)';
+    i_maxPAR = arrayfun(@(iP) find(PAR_lin_RegDrkSat(:,iP) == maxPAR(iP)), 1 : tagMetadata.nProfs, 'UniformOutput',false)';
 
-        % check saturation depth only if profile starts with descrease>mean derivative
-        % else no saturation depth and saturation value is defined to maximum PAR value measured
-        if isfinite(meandiffPARlog) && diffPARlog(firstObs(iP)) > meandiffPARlog
-            Z_saturation = firstObs(iP) + 1;
-            while diffPARlog(Z_saturation) >= meandiffPARlog
-                Z_saturation = Z_saturation + 1;
-            end
-            % Remove saturated values
-            PAR_lin_RegDrkSat(1 : Z_saturation-1,iP) = NaN;
+    % Identify profiles with apparent saturation points:
+    % --> Profiles with maximum PAR values that are constant over 2 or more consecutive depths
+    maybeSaturated = find(arrayfun(@(iP) numel(i_maxPAR{iP}) > 1 && ismember(1,diff(i_maxPAR{iP})), 1 : tagMetadata.nProfs));
 
-            % Write saturation depth and PAR value to parData table
-            ProfileInfo_PAR.SaturationDepth(iP) = -Z_saturation;
-            ProfileInfo_PAR.SaturationValue(iP) = PAR_lin_RegDrkSat(Z_saturation,iP);
+    % Check for "unsaturated" maxima exceeding the highest apparent saturation maximum:
+    % If (a) at least 3 PAR maxima exist that are NOT identified as saturation points and (b) exceed the maximum apparent
+    % saturation point on average by >10%.
+    % --> This condition identifies cases where saturation is associated with relatively low PAR values and therefore cannot
+    % reasonably be assumed to reflect a saturation point.
+    lowSaturationPoint = (numel(maxPAR(max(maxPAR(maybeSaturated)) < maxPAR)) > 2 && ...            % (a)
+        mean(maxPAR(max(maxPAR(maybeSaturated)) < maxPAR) ./ max(maxPAR(maybeSaturated)))>1.1);     % (b)
+
+    if lowSaturationPoint
+        % If the above condition is true, all saturation points are assumed to be apparent only and are therefore ignored.
+        isSaturated = [];
+    else
+        % Else proceed to identify a reasonable range of true saturation values via an iterative approach, determining the
+        % largest set of maximum saturation values for which the 20th percentile is within 80% of the 80th percentile (i.e.
+        % find a concise set of the highest saturation values). Low saturation values are discarded. This approach assumes
+        % that sensor saturation should be more or less consistent across all profiles and can only be reflected by the
+        % highest values.
+        % Note: Where the initial set of apparent saturation values is already within the specified range, no saturation
+        % values are discarded. Else low saturation points are discounted. 
+
+        [~,iSort] = sort(maxPAR(maybeSaturated));   % Apparent saturation values (sorted)
+        maybeSaturated = maybeSaturated(iSort);     % Sort apparent saturation indices
+        isSaturated = maybeSaturated;
+        ct = 0;
+        while prctile(maxPAR(isSaturated),20)/prctile(maxPAR(isSaturated),80) < 0.8
+            ct = ct + 1;
+            isSaturated = maybeSaturated(ct:end);
         end
+    end
+
+    for iP = isSaturated
+        % Set values above the lowest saturated value NaN
+        PAR_lin_RegDrkSat(1:i_maxPAR{iP}(end),iP) = NaN;
+        
+        % Write saturation depth and PAR value to parData table
+        ProfileInfo_PAR.SaturationDepth(iP) = -i_maxPAR{iP}(end);
+        ProfileInfo_PAR.SaturationValue(iP) = maxPAR(iP);
     end
 
     % Write to platform_processed structure
