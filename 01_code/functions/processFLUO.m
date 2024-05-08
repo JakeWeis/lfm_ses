@@ -136,19 +136,23 @@ if ~all(ProfileInfo_FLUO.noData)
     tagProcessed.FLUO.RegDrkNPQ = tagProcessed.FLUO.RegDrk;
 
     % Smoothing FLUO
-    w = 11; % 11-point median filter
+    w = 1; % no smoothing! [\11-point median filter]
     finiteVals = isfinite(tagProcessed.FLUO.RegDrk);
     FLUOsmooth = movmedian(tagProcessed.FLUO.RegDrk,w,'EndPoints','fill');
     FLUOsmooth(finiteVals) = fillmissing(FLUOsmooth(finiteVals),'nearest');
 
-    % Find the shallower of the MLD and quenching depth (>15 mol quanta): "NPQ layer"
-    iZ_NPQ = abs(round(min(ProfileInfo.MLD,ProfileInfo_PAR.quenchDepth)));
-
     for iP = 1 : tagMetadata.nProfs
+        % Find the shallower of the MLD and quenching depth (>15 mol quanta): "NPQ layer"
+        if isfinite(ProfileInfo_PAR.quenchDepth(iP)) && isfinite(ProfileInfo.MLD(iP))
+            iZ_NPQ = abs(round(max([ProfileInfo.MLD(iP),ProfileInfo_PAR.quenchDepth(iP)])));
+        else
+            iZ_NPQ = NaN;
+        end
+
         % Only correct if profile was taken during daytime (and if NPQ depth is finite and not 0)
-        if ProfileInfo.Daytime(iP) && isfinite(iZ_NPQ(iP)) && iZ_NPQ(iP) > 0
+        if ProfileInfo.Daytime(iP) && isfinite(iZ_NPQ) && iZ_NPQ > 0
             % FCHLA maximum within the NPQ layer
-            [MaxFluo_X12,zMaxFluo_X12] = max(FLUOsmooth(1:iZ_NPQ(iP),iP));
+            [MaxFluo_X12,zMaxFluo_X12] = max(FLUOsmooth(1:iZ_NPQ,iP));
             % correct FLUO_nadDk
             tagProcessed.FLUO.RegDrkNPQ(1:zMaxFluo_X12,iP) = MaxFluo_X12;
             % NPQ layer depth
