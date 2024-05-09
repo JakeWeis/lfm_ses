@@ -47,7 +47,8 @@ lastObs = find_ndim(isfinite(tagProcessed.PAR.log_Reg),1,'last')';
 nonZeroIndices = find(firstObs(:,1) ~= 0);
 ProfileInfo_PAR.surfaceValue(nonZeroIndices,1) = arrayfun(@(x) tagProcessed.PAR.lin_Reg(firstObs(x,1), x), nonZeroIndices);
 
-% Only proceed with processing if there is any usable data
+%% Processing: Dark correction, sensor saturation removal, spline fitting
+% Only proceed if there is any usable data
 if ~all(ProfileInfo_PAR.noData)
     %% Dark depth/value & attenuation slope calculation
     PAR_lin_RegDrk = tagProcessed.PAR.lin_Reg;
@@ -91,51 +92,39 @@ if ~all(ProfileInfo_PAR.noData)
         % Sampled vector X in Lilliefors test must have at least 4 valid observations
         if lastObs(iP) - firstObs(iP) + 1 >= 4
 
-            % iteratively move down the water column and check normality of distribution of PAR values from depth i and the deepest PAR value
-            for iZ = firstObs(iP) : lastObs(iP) - 3
-                warning('off','stats:lillietest:OutOfRangePLow')    % Warning: P is less than the smallest tabulated value, returning 0.001.
+            % REVERSE (BOTTOM-UP) LILLIEFOR TEST
+            % counter and required number of consecutive accepted null hypothesis tests determining the end of the dark signal
+            ct_h1 = 0;
+            n_h1 = 3;
+            % iteratively move up the water column and check normality of distribution of PAR values from the deepest value to depth i
+            for iZ = lastObs(iP) - 3 : -1 : firstObs(iP)
+                % Warning: P is less than the smallest tabulated value, returning 0.001.
+                warning('off','stats:lillietest:OutOfRangePLow')
                 warning('off','stats:lillietest:OutOfRangePHigh')
 
                 % Lilliefor normality test
                 [h_lillie,~] = lillietest(PAR_lin_RegDrk(iZ:lastObs(iP),iP),'Alpha',0.01,'Distribution','normal');
 
-                if h_lillie == 0
-                    % If Lilliefor test returns h = 0 (i.e. distribution of PAR values from iZ to deepest value is normal)
-                    % then iZ = dark depth and get dark PAR value at dark depth
-                    Z_dark = iZ;
-                    PAR_dark = median(PAR_lin_RegDrk(Z_dark:lastObs(iP),iP));
+                if h_lillie == 1
+                    % if null hypothesis is not rejected (non-normal distribution above dark signal) increase counter by 1
+                    ct_h1 = ct_h1 + 1;
 
-                    break % end for-loop
+                    if ct_h1 == n_h1
+                        % If non-dark signal is found at n consecutive depths then the dark signal starts at iZ+n
+                        Z_dark = iZ + n_h1;
+                        PAR_dark = median(PAR_lin_RegDrk(Z_dark:lastObs(iP),iP));
+
+                        break % end for-loop
+                    end
+                else
+                    ct_h1 = 0;
                 end
             end
-
         end
 
         % Write to parData table
         darkDepth(iP) = -Z_dark;     % first dark depth (index, depth)
         ProfileInfo_PAR.darkValue(iP) = PAR_dark;	% dark PAR value
-
-        %% 3) Attenuation slope (based on logarithmic PAR values)
-        % Slope calculated over non-dark section of PAR profile
-        if isfinite(Z_dark) && firstObs(iP) > 0
-            atten_slope = ...
-                (PAR_log_RegDrk(Z_dark-1,iP) - PAR_log_RegDrk(firstObs(iP),iP)) /...
-                (defaultPars.depthInterpGrid(Z_dark-1) - defaultPars.depthInterpGrid(firstObs(iP)));
-
-            % Slope calculated between defined upper and lower depth bound
-            % (only if dark depth is deeper than lower bound)
-            if defaultPars.lowerDepthBound > darkDepth(iP)
-                atten_slope_PART = ...
-                    (PAR_log_RegDrk(abs(defaultPars.lowerDepthBound),iP) - PAR_log_RegDrk(firstObs(iP),iP)) /...
-                    (tagProcessed.DEPTH(abs(defaultPars.lowerDepthBound),iP) - tagProcessed.DEPTH(firstObs(iP),iP));
-            else
-                atten_slope_PART = NaN;
-            end
-
-            % write parData table
-            ProfileInfo_PAR.attSlope(iP)        = atten_slope;	% slope of attenuation (calculated where PAR is non DARK)
-            ProfileInfo_PAR.attSlopeBound(iP)    = atten_slope_PART; % slope of attenuation calculated on [upperDepthBound:lowerDepthBound] interval
-        end
     end
 
     %% Dark correction
@@ -155,6 +144,28 @@ if ~all(ProfileInfo_PAR.noData)
 
     % Update last non-NaN parData table column
     lastObs = find_ndim(isfinite(tagProcessed.PAR.log_RegDrk),1,'last')';
+
+    %% 3) Attenuation slope (based on logarithmic PAR values)
+    % Slope calculated over non-dark section of PAR profile
+    if isfinite(Z_dark) && firstObs(iP) > 0
+        atten_slope = ...
+            (tagProcessed.PAR.log_RegDrk(lastObs(iP),iP) - tagProcessed.PAR.log_RegDrk(firstObs(iP),iP)) /...
+            (defaultPars.depthInterpGrid(lastObs(iP)) - defaultPars.depthInterpGrid(firstObs(iP)));
+
+        % Slope calculated between defined upper and lower depth bound
+        % (only if dark depth is deeper than lower bound)
+        if defaultPars.lowerDepthBound > darkDepth(iP)
+            atten_slope_PART = ...
+                (tagProcessed.PAR.log_RegDrk(abs(defaultPars.lowerDepthBound),iP) - tagProcessed.PAR.log_RegDrk(firstObs(iP),iP)) /...
+                (tagProcessed.DEPTH(abs(defaultPars.lowerDepthBound),iP) - tagProcessed.DEPTH(firstObs(iP),iP));
+        else
+            atten_slope_PART = NaN;
+        end
+
+        % write parData table
+        ProfileInfo_PAR.attSlope(iP)        = atten_slope;	% slope of attenuation (calculated where PAR is non DARK)
+        ProfileInfo_PAR.attSlopeBound(iP)    = atten_slope_PART; % slope of attenuation calculated on [upperDepthBound:lowerDepthBound] interval
+    end
 
     %% Saturation depth
     % PAR_lin_RegDrkSat = tagProcessed.PAR.lin_RegDrk;
@@ -191,41 +202,59 @@ if ~all(ProfileInfo_PAR.noData)
     %% Saturation depth (ATLERNATIVE ID METHOD)
     PAR_lin_RegDrkSat = tagProcessed.PAR.lin_RegDrk;
 
-    % Maximum PAR value in each profile and depths at which maxima occur
-    maxPAR = max(PAR_lin_RegDrkSat)';
-    i_maxPAR = arrayfun(@(iP) find(PAR_lin_RegDrkSat(:,iP) == maxPAR(iP)), 1 : tagMetadata.nProfs, 'UniformOutput',false)';
-
     % Identify profiles with apparent saturation points:
-    % --> Profiles with maximum PAR values that are constant over 2 or more consecutive depths
-    maybeSaturated = find(arrayfun(@(iP) numel(i_maxPAR{iP}) > 1 && ismember(1,diff(i_maxPAR{iP})), 1 : tagMetadata.nProfs));
+    % --> Profiles with maximum PAR values that are constant over n or more consecutive depths
+    n_recur = 3; % recurrence threshold
+    maxPAR = NaN(tagMetadata.nProfs,1);
+    i_maxPAR = cell(tagMetadata.nProfs,1);
+    maybeSaturated = false(tagMetadata.nProfs,1);
+    for iP = 1 : tagMetadata.nProfs
+        PAR = PAR_lin_RegDrkSat(:,iP);
+        maxPAR(iP) = max(PAR);
+        i_maxPAR{iP} = find(PAR == maxPAR(iP));
+        
+        % Check if the maximum PAR value is constant over n_recur consecutive depths
+        for iZ = 1 : numel(i_maxPAR{iP}) - n_recur + 1
+            if all(diff(i_maxPAR{iP}(iZ:iZ+n_recur-1)) == 1)
+                maybeSaturated(iP,1) = true;
+                break;
+            end
+        end
+    end
+    maybeSaturated = find(maybeSaturated)';
 
-    % Check for "unsaturated" maxima exceeding the highest apparent saturation maximum:
-    % If (a) at least 3 PAR maxima exist that are NOT identified as saturation points and (b) exceed the maximum apparent
-    % saturation point on average by >10%.
-    % --> This condition identifies cases where saturation is associated with relatively low PAR values and therefore cannot
-    % reasonably be assumed to reflect a saturation point.
-    lowSaturationPoint = (numel(maxPAR(max(maxPAR(maybeSaturated)) < maxPAR)) > 2 && ...            % (a)
-        mean(maxPAR(max(maxPAR(maybeSaturated)) < maxPAR) ./ max(maxPAR(maybeSaturated)))>1.1);     % (b)
+    if isempty(maybeSaturated)
+        % No apparent saturation points found
+        noSaturation = true;
+    else
+        % Check for "unsaturated" maxima exceeding the highest apparent saturation maximum:
+        % If (a) at least 3 PAR maxima exist that are NOT identified as saturation points and (b) exceed the maximum apparent
+        % saturation point on average by >10%.
+        % --> NOTE: This condition identifies cases where saturation is associated with relatively low PAR values and therefore
+        % cannot reasonably be assumed to reflect a saturation point.
+        noSaturation = (numel(maxPAR(max(maxPAR(maybeSaturated)) < maxPAR)) >= 3 && ...                 % (a)
+            mean(maxPAR(max(maxPAR(maybeSaturated)) < maxPAR) ./ max(maxPAR(maybeSaturated)))>1.1);     % (b) 
+    end
 
-    if lowSaturationPoint
-        % If the above condition is true, all saturation points are assumed to be apparent only and are therefore ignored.
+    if noSaturation
+        % If the above conditions are met, no profile is assumed to have reached a saturation point
         isSaturated = [];
     else
-        % Else proceed to identify a reasonable range of true saturation values via an iterative approach, determining the
-        % largest set of maximum saturation values for which the 20th percentile is within 80% of the 80th percentile (i.e.
-        % find a concise set of the highest saturation values). Low saturation values are discarded. This approach assumes
-        % that sensor saturation should be more or less consistent across all profiles and can only be reflected by the
-        % highest values.
-        % Note: Where the initial set of apparent saturation values is already within the specified range, no saturation
-        % values are discarded. Else low saturation points are discounted. 
+        % Else proceed to identify a reasonable range of true saturation values via an iterative approach: 
+        % Determine the largest set of the highest apparent saturation values for which the 5th percentile is within 80% of
+        % the 95th percentile (i.e. find a concise set of saturation values). Low saturation values are discarded.
+        % --> NOTE: This approach assumes that sensor saturation is sensor-specific and should be more or less consistent
+        % across all profiles and can only be reflected by the highest values. Where the initial set of apparent saturation
+        % values is already within the specified range, no saturation values are discarded. Else low saturation points are
+        % discounted.
 
         [~,iSort] = sort(maxPAR(maybeSaturated));   % Apparent saturation values (sorted)
         maybeSaturated = maybeSaturated(iSort);     % Sort apparent saturation indices
         isSaturated = maybeSaturated;
-        ct = 0;
-        while prctile(maxPAR(isSaturated),20)/prctile(maxPAR(isSaturated),80) < 0.8
-            ct = ct + 1;
-            isSaturated = maybeSaturated(ct:end);
+        ct_recur = 0;
+        while prctile(maxPAR(isSaturated),5)/prctile(maxPAR(isSaturated),95) < 0.80
+            ct_recur = ct_recur + 1;
+            isSaturated = maybeSaturated(ct_recur:end);
         end
     end
 
@@ -245,13 +274,11 @@ if ~all(ProfileInfo_PAR.noData)
     % Update first non-NaN parData table column
     firstObs = find_ndim(isfinite(tagProcessed.PAR.lin_RegDrkSat),1,'first')';
 
-    %% Functional fit (full profile)
+    %% Functional fit: full profile (where observations are available)
     tagProcessed.PAR.log_RegDrkSatFitAll = NaN(size(tagProcessed.PAR.log_RegDrkSat));
     tagProcessed.PAR.Kd_all = NaN(size(tagProcessed.PAR.log_RegDrkSat));
-    % platform_processed.CHL_LFM.Full = NaN(size(platform_processed.PAR.log_RegDrkSat));
 
     % Select profiles for fit computation
-    lumToFit_all = tagProcessed.PAR.log_RegDrkSat;
     i_profiles = find(...
         ProfileInfo.Processed &...              % Passed processing checks in loadData
         ProfileInfo.Daytime &...                % Daytime profile
@@ -265,8 +292,8 @@ if ~all(ProfileInfo_PAR.noData)
 
     % Compute fit
     for iP = i_profiles
-        % PAR data to compute fit over
-        PAR_fit = lumToFit_all(:,iP);
+        % Dark/saturation corrected PAR data to compute fit over
+        PAR_fit = tagProcessed.PAR.log_RegDrkSat(:,iP);
         fitInterval = find(isfinite(PAR_fit));
         PAR_fit = PAR_fit(fitInterval);
 
@@ -285,34 +312,48 @@ if ~all(ProfileInfo_PAR.noData)
         % Calculate Kd as the derivative function of the PAR fit
         fdKd_iP = deriv_fd(fdFit_PAR);
         tagProcessed.PAR.Kd_all(fitInterval,iP) = -eval_fd(fdKd_iP,fitInterval);
-
-        %% LFM CHL PREDICTION FROM KD
-        % LFM model used for chl prediction was trained on5-200 m depth interval only
-        % --> Cant be used for any other
-
-        % % recover Blind coeffs
-        % KdFDcoefs = getcoef(fdKd_iP);
-        % lumBlindForPred_fd = fd(KdFDcoefs,basisObj);
-        %
-        % % compute Blind prediction
-        % % CENTER THE PREDICTOR DATA
-        % xcBlind_fd = center(lumBlindForPred_fd);
-        % % COMPUTE PREDICTION
-        % yhatpenBlind_fdCoefs_temp = defVals.LFM.LFMcore.Bpen*getcoef(xcBlind_fd);
-        %
-        % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% COMPUTE CHLA PREDICTION
-        % % eval CHLAFITBlind / CHLAHATpBlind
-        % newObj_dfCoefs = yhatpenBlind_fdCoefs_temp + defVals.LFM.LFMcore.meanFittedObsFDcoefs;
-        % newObj_fd = fd(newObj_dfCoefs, basisObj);
-        % platform_processed.CHL_LFM.Full(fitInterval,iP) = eval_fd(newObj_fd,fitInterval);
-        % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PREDICTION POST-PROCESSING
-        % % remove negative values
-        % platform_processed.CHL_LFM.Full(platform_processed.CHL_LFM.Full < 0) = NaN;
-
     end
-
+    
     % Compute linear PAR array
     tagProcessed.PAR.lin_RegDrkSatFitAll = exp(tagProcessed.PAR.log_RegDrkSatFitAll);
+
+    %% Functional fit: Full profile fit extended to the surface
+    tagProcessed.PAR.log_RegDrkSatFitSurf = tagProcessed.PAR.log_RegDrkSatFitAll;
+
+    % Fit parameters
+    % Initialise bspline fit coefficients
+    fdCoeffs = zeros(defaultPars.LFM.nBasis,1);
+    % Set up functional parameter object
+    lfdObj = 1; % original value in script = 2; penalize curvature of acceleration
+
+    % Compute fit
+    for iP = i_profiles
+        % Use fitted PAR data from the previous step and linear extrapolate values to the surface (keep NaNs at depth)
+        % The linear extrapolation approximates the continuing increase of light to the surface and will be improved by a
+        % second spline fit.
+        PAR_fit = [fillmissing(tagProcessed.PAR.log_RegDrkSatFitAll(1:lastObs(iP),iP),'linear');tagProcessed.PAR.log_RegDrkSatFitAll(lastObs(iP)+1:end,iP)];
+        fitInterval = find(isfinite(PAR_fit));
+        PAR_fit = PAR_fit(fitInterval);
+
+        % Bspline functional fit
+        basisObj = create_bspline_basis([fitInterval(1) fitInterval(end)],defaultPars.LFM.nBasis,defaultPars.LFM.nOrder);
+        fdObj = fd(fdCoeffs, basisObj);
+        lambda = defaultPars.LFM.lambda; %  smoothing parameter %10^(-0.1), Q: Why is lambda=0.03 in LFM file that's imported and used in the previous fit???
+        fdPar_iP = fdPar(fdObj,lfdObj,lambda);
+
+        % Monotone smooth fit
+        [~, ~, fdFit_PAR, ~, ~, ~, ~] = smooth_monotone(fitInterval,PAR_fit,fdPar_iP);
+
+        % Evaluate fit and store in platform_processed PAR structure
+        tagProcessed.PAR.log_RegDrkSatFitSurf(fitInterval,iP) = eval_fd(fdFit_PAR,fitInterval);
+
+        % Calculate Kd as the derivative function of the PAR fit
+        fdKd_iP = deriv_fd(fdFit_PAR);
+        tagProcessed.PAR.Kd_all(fitInterval,iP) = -eval_fd(fdKd_iP,fitInterval);
+    end
+    
+    % Compute linear PAR array
+    tagProcessed.PAR.lin_RegDrkSatFitSurf = exp(tagProcessed.PAR.log_RegDrkSatFitSurf);
 
     %% Functional fit (predefined depth interval)
     tagProcessed.PAR.log_RegDrkSatFitBnd = NaN(size(tagProcessed.PAR.log_RegDrkSat));
@@ -414,6 +455,7 @@ if ~all(ProfileInfo_PAR.noData)
             ProfileInfo_PAR.meanKdML(iP) = mean(tagProcessed.PAR.Kd_all(1:iZ_MLD,iP),1,'omitnan');
         end
     end
+
 end
 
 %% CMD message: done
