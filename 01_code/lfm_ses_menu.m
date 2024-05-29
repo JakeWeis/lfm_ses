@@ -11,12 +11,9 @@ root.data.seal      = [root.proj '00_data' filesep '01_seal' filesep];
 root.data.float     = [root.proj '00_data' filesep '02_float' filesep];
 
 % input data directory (TO BE SPECIFIED AS INPUT TO)
-% root.input = '/Volumes/PhData/PD DATA/MEOP-CTD_2024-03-08/SUBSET/FLUO_LIGHT';
-root.input          = '/Volumes/PhData/PD DATA/MEOP-CTD_2024-03-08/SUBSET/FLUO_LIGHT';
-if ~strcmp(root.input(end),filesep)
-    root.input      = [root.input filesep];
-end
-root.output         = [root.input 'processed_output_NEW' filesep];
+% root.input = '/Volumes/PhData/PD DATA/SUBSET/FLUO_LIGHT';
+root.input          = '/Volumes/PhData/PD DATA/SUBSET/FLUO_LIGHT_FR';
+root.output         = fullfile(root.input, 'OUT');
 if ~isfolder(root.output)
     mkdir(root.output)
 end
@@ -26,7 +23,7 @@ defaultPars = setDefaults(root);
 
 if ~exist('bathymetry','var')
     fprintf('Loading <strong>ETOPO 2022 Global Relief Model</strong>...');
-    [bathymetry.data, bathymetry.ref] = readgeoraster([root.proj, '00_data', filesep, '00_etopo', filesep, 'ETOPO_2022_v1_60s_N90W180_bed.tif']);
+    [bathymetry.data, bathymetry.ref] = readgeoraster(fullfile(root.proj, '00_data', '00_etopo', 'ETOPO_2022_v1_60s_N90W180_bed.tif'));
     bathymetry.data = flipud(bathymetry.data);
     bathymetry.lon = bathymetry.ref.LongitudeLimits(1) : bathymetry.ref.CellExtentInLongitude : bathymetry.ref.LongitudeLimits(2) - bathymetry.ref.CellExtentInLongitude;
     bathymetry.lat = bathymetry.ref.LatitudeLimits(1) : bathymetry.ref.CellExtentInLatitude : bathymetry.ref.LatitudeLimits(2) - bathymetry.ref.CellExtentInLatitude;    
@@ -38,7 +35,7 @@ end
 %% Tag data processing
 fprintf('\n<strong>Begin processing tags.</strong>\n\n')
 % Iterate through all NetCDF files in the input directory
-allFiles = dirPaths([root.input '*.nc']);
+allFiles = dirPaths(fullfile(root.input, '*.nc'));
 nTags = numel(allFiles);
 for iTag = 1 : numel(allFiles)
     %% Processing

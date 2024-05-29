@@ -11,9 +11,9 @@ fprintf('Loading data...');
 %% Identify data type from NetCDF attributes (animal-borne or Argo)
 % Might remove the Argo bit at some point as this code is meant to be seal
 % tag specific...
-if strcmp(ncreadatt([root.input tagRef],'/','source'), 'Marine mammal observation')
+if strcmp(ncreadatt(fullfile(root.input, tagRef),'/','source'), 'Marine mammal observation')
     platform_type = 'sealtag';
-elseif strcmp(ncreadatt([root.input tagRef],'/','source'), 'Argo float')
+elseif strcmp(ncreadatt(fullfile(root.input, tagRef),'/','source'), 'Argo float')
     platform_type = 'float';
 else
     platform_type = 'undefined';
@@ -21,7 +21,7 @@ else
 end
 
 %% Load data
-tagData = ncload_struct([root.input tagRef]);
+tagData = ncload_struct(fullfile(root.input, tagRef));
 
 % If available, replace LATITUDE/LONGITUDE fields with corresponding *_ADJUSTED fields
 if isfield(tagData,'LATITUDE_ADJUSTED')
@@ -34,9 +34,6 @@ reference_date = '1950-01-01 00:00:00'; % see platform_data.REFERENCE_DATE_TIME
 dateYMD = datetime(tagData.JULD_LOCATION + datenum(reference_date),'ConvertFrom','datenum');
 tagData.DATETIME = repmat(dateYMD',size(tagData.PRES,1),1);
 
-% Calculate depth from pressure and latitude (using GSW equations)
-tagData.DEPTH = gsw_z_from_p(tagData.PRES_ADJUSTED,tagData.LATITUDE);
-
 % Calculate density from abs. salinity, conservative temperature and pressure (using GSW equations)
 SA = gsw_SA_from_SP(tagData.PSAL_ADJUSTED,tagData.PRES_ADJUSTED,tagData.LONGITUDE,tagData.LATITUDE);
 CT = gsw_CT_from_t(SA,tagData.TEMP_ADJUSTED,tagData.PRES_ADJUSTED);
@@ -46,31 +43,38 @@ tagData.DENS = gsw_rho_CT_exact(SA,CT,0);
 switch platform_type
     case 'sealtag'
         % Seal tag metadata stored in main data file
-        tagMetadata = ncloadatt_struct([root.input tagRef]);
+        tagMetadata = ncloadatt_struct(fullfile(root.input, tagRef));
         tagMetadata.platform_type = 'sealtag';
     case 'float'
         % Float metadata stored in separate file
         float_metadata_filename = strrep(tagRef,'Sprof','meta');
-        tagMetadata = ncload_struct([root.input float_metadata_filename]);
+        tagMetadata = ncload_struct(fullfile(root.input, tagRef));
         tagMetadata.platform_type = 'float';
 end
 
 % Number of profiles and number of depth levels
-tagMetadata.nProfs = size(tagData.DEPTH,2);
-tagMetadata.nDepth = size(tagData.DEPTH,1);
+tagMetadata.nProfs = size(tagData.PRES,2);
+tagMetadata.nDepth = size(tagData.PRES,1);
 
 % Check resolution of tag data
-if ~isempty(regexp(tagRef,'lr[1-9]','once')) || tagMetadata.nDepth < numel(defaultPars.depthInterpGrid)
-    % if file name contains "lr1/lr2/..."  or 
-    % if n depth levels < n depth levels of the specified depth interpolation vector
+if ~isempty(regexp(tagRef,'lr[1-9]','once'))
+    % Low res: If the file name contains "lr1/lr2/..."
     tagMetadata.depth_res = 'lr';
-elseif ~isempty(regexp(tagRef,'hr[1-9]','once')) || tagMetadata.nDepth == numel(defaultPars.depthInterpGrid)
-    % if file name contains "hr1/hr2/..." or i
-    % if n depth levels = n depth levels of the specified depth interpolation vector
+elseif ~isempty(regexp(tagRef,'hr[1-9]','once'))
+    % High res: If the file name contains "hr1/hr2/..."
     tagMetadata.depth_res = 'hr';
 elseif ~isempty(regexp(tagRef,'fr[1-9]','once'))
-    % if file name contains "fr1/fr2/..."
+    % Full Res: If the file name contains "fr1/fr2/..."
     tagMetadata.depth_res = 'fr';
+else
+    % If the resolution is not specified in the file name.
+    if tagMetadata.nDepth < numel(defaultPars.depthInterpGrid)
+        % Low res: if n depth levels < n depth levels of the specified depth interpolation vector
+        tagMetadata.depth_res = 'lr';
+    elseif tagMetadata.nDepth == numel(defaultPars.depthInterpGrid)
+        % if n depth levels = n depth levels of the specified depth interpolation vector
+        tagMetadata.depth_res = 'hr';
+    end
 end
 
 % lat/lon min/max
@@ -93,69 +97,56 @@ end
 
 %% Interpolate data onto uniform depth grid
 
-switch tagMetadata.depth_res
+% Calculate depth from pressure and latitude (using GSW equations)
+tagData.DEPTH = gsw_z_from_p(tagData.PRES_ADJUSTED,tagData.LATITUDE);
 
-    case 'lr' % low resolution
+% The depth array of the processed data is equivalent to the predefined interpolation-depth vector (in meters)
+tagProcessed.DEPTH = repmat(defaultPars.depthInterpGrid,1,tagMetadata.nProfs);
 
-        % The depth array of the processed data is equivalent to the predefined interpolation-depth vector (in meters)
-        tagProcessed.DEPTH = repmat(defaultPars.depthInterpGrid,1,tagMetadata.nProfs);
-        
-        % Pressure, temperature, salinity, fluorescence and PAR are all interpolated onto the uniform depth grid given above
-        tagProcessed.PRES.Reg = NaN(numel(defaultPars.depthInterpGrid),tagMetadata.nProfs);
-        tagProcessed.TEMP.Reg = NaN(numel(defaultPars.depthInterpGrid),tagMetadata.nProfs);
-        tagProcessed.PSAL.Reg = NaN(numel(defaultPars.depthInterpGrid),tagMetadata.nProfs);
-        tagProcessed.FLUO.Reg = NaN(numel(defaultPars.depthInterpGrid),tagMetadata.nProfs);
-        tagProcessed.PAR.log_Reg = NaN(numel(defaultPars.depthInterpGrid),tagMetadata.nProfs);
-        tagProcessed.PAR.lin_Reg = NaN(numel(defaultPars.depthInterpGrid),tagMetadata.nProfs);
+% Pressure, temperature, salinity, fluorescence and PAR are all interpolated onto the uniform depth grid given above
+tagProcessed.PRES.Reg = NaN(numel(defaultPars.depthInterpGrid),tagMetadata.nProfs);
+tagProcessed.TEMP.Reg = NaN(numel(defaultPars.depthInterpGrid),tagMetadata.nProfs);
+tagProcessed.PSAL.Reg = NaN(numel(defaultPars.depthInterpGrid),tagMetadata.nProfs);
+tagProcessed.FLUO.Reg = NaN(numel(defaultPars.depthInterpGrid),tagMetadata.nProfs);
+tagProcessed.PAR.log.Reg = NaN(numel(defaultPars.depthInterpGrid),tagMetadata.nProfs);
+tagProcessed.PAR.lin.Reg = NaN(numel(defaultPars.depthInterpGrid),tagMetadata.nProfs);
 
-        % Interpolate
-        for iP = 1 : tagMetadata.nProfs
-            % depth vector for profile i (irregular step)
-            depth_irreg = tagData.DEPTH(:,iP);
-            depth_isnan = ~isfinite(depth_irreg);
-            depth_irreg(depth_isnan) = [];
+% Interpolate
+for iP = 1 : tagMetadata.nProfs
+    % depth vector for profile i (irregular step)
+    depth_irreg = tagData.DEPTH(:,iP);
+    depth_isnan = ~isfinite(depth_irreg);
+    depth_irreg(depth_isnan) = [];
 
-            % Pressure
-            pres_irreg = tagData.PRES_ADJUSTED(:,iP);
-            pres_irreg(depth_isnan) = [];
-            tagProcessed.PRES.Reg(:,iP) = interp1(depth_irreg,pres_irreg,defaultPars.depthInterpGrid,'linear');
+    % Pressure
+    pres_irreg = tagData.PRES_ADJUSTED(:,iP);
+    pres_irreg(depth_isnan) = [];
+    tagProcessed.PRES.Reg(:,iP) = interp1(depth_irreg,pres_irreg,defaultPars.depthInterpGrid,'linear');
 
-            % Temperature
-            temp_irreg = tagData.TEMP_ADJUSTED(:,iP);
-            temp_irreg(depth_isnan) = [];
-            tagProcessed.TEMP.Reg(:,iP) = interp1(depth_irreg,temp_irreg,defaultPars.depthInterpGrid,'linear');
+    % Temperature
+    temp_irreg = tagData.TEMP_ADJUSTED(:,iP);
+    temp_irreg(depth_isnan) = [];
+    tagProcessed.TEMP.Reg(:,iP) = interp1(depth_irreg,temp_irreg,defaultPars.depthInterpGrid,'linear');
 
-            % Practical salinity
-            psal_irreg = tagData.PSAL_ADJUSTED(:,iP);
-            psal_irreg(depth_isnan) = [];
-            tagProcessed.PSAL.Reg(:,iP) = interp1(depth_irreg,psal_irreg,defaultPars.depthInterpGrid,'linear');
+    % Practical salinity
+    psal_irreg = tagData.PSAL_ADJUSTED(:,iP);
+    psal_irreg(depth_isnan) = [];
+    tagProcessed.PSAL.Reg(:,iP) = interp1(depth_irreg,psal_irreg,defaultPars.depthInterpGrid,'linear');
 
-            % Chl fluorescence
-            if isfield(tagData,'CHLA')
-                fluo_irreg = tagData.CHLA(:,iP);
-                fluo_irreg(depth_isnan) = [];
-                tagProcessed.FLUO.Reg(:,iP) = interp1(depth_irreg,fluo_irreg,defaultPars.depthInterpGrid,'linear');
-            end
+    % Chl fluorescence
+    if isfield(tagData,'CHLA')
+        fluo_irreg = tagData.CHLA(:,iP);
+        fluo_irreg(depth_isnan) = [];
+        tagProcessed.FLUO.Reg(:,iP) = interp1(depth_irreg,fluo_irreg,defaultPars.depthInterpGrid,'linear');
+    end
 
-            % LIGHT fluorescence
-            if isfield(tagData,'LIGHT')
-                par_irreg = tagData.LIGHT(:,iP);
-                par_irreg(depth_isnan) = [];
-                tagProcessed.PAR.log_Reg(:,iP) = interp1(depth_irreg,par_irreg,defaultPars.depthInterpGrid,'linear');
-                tagProcessed.PAR.lin_Reg(:,iP) = exp(tagProcessed.PAR.log_Reg(:,iP));
-            end
-        end
-
-    otherwise % high or full resolution
-
-        tagProcessed.DEPTH = tagData.DEPTH;
-        tagProcessed.PRES.Reg = tagData.PRES_ADJUSTED;
-        tagProcessed.TEMP.Reg = tagData.TEMP_ADJUSTED;
-        tagProcessed.PSAL.Reg = tagData.PSAL_ADJUSTED;
-        tagProcessed.FLUO.Reg = tagData.CHLA;
-        tagProcessed.PAR.log_Reg = tagData.LIGHT;
-        tagProcessed.PAR.lin_Reg = exp(tagData.LIGHT);
-
+    % LIGHT fluorescence
+    if isfield(tagData,'LIGHT')
+        par_irreg = tagData.LIGHT(:,iP);
+        par_irreg(depth_isnan) = [];
+        tagProcessed.PAR.log.Reg(:,iP) = interp1(depth_irreg,par_irreg,defaultPars.depthInterpGrid,'linear');
+        tagProcessed.PAR.lin.Reg(:,iP) = exp(tagProcessed.PAR.log.Reg(:,iP));
+    end
 end
 
 %% create genData table to store general profile information
@@ -282,11 +273,6 @@ end
 %% MLD
 MLD_algo = 3; % 1: Temperature threshold, 2: Salinity threshold, 3: Density threshold
 for iP = 1 : tagMetadata.nProfs
-    % CMD waitbar
-    nWaitbar = floor(iP/tagMetadata.nProfs*100/10)+1;
-    nchar = fprintf([' ',repmat('|',1,nWaitbar),...
-        repmat('-',1,10-nWaitbar),' %d%%'],nWaitbar*10);
-
     % MLD
     pres = tagProcessed.PRES.Reg(:,iP);
     temp = tagProcessed.TEMP.Reg(:,iP);
@@ -307,9 +293,6 @@ for iP = 1 : tagMetadata.nProfs
         end
         
     end
-
-    % CMD waitbar reset
-    fprintf(repmat('\b',1,nchar))
 end
 
 %% CMD message: done
