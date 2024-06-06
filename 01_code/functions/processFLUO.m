@@ -49,6 +49,13 @@ tagProcessed.FLUO.Reg(:,n_nonzero <= defaultPars.LFM.nBasis) = NaN;
 firstObs = find_ndim(isfinite(tagProcessed.FLUO.Reg),1,'first')';
 lastObs = find_ndim(isfinite(tagProcessed.FLUO.Reg),1,'last')';
 
+%% Processing: Dark correction, NPQ correction, spline fitting
+% Initiate processed data fields
+tagProcessed.FLUO.RegDrk = NaN(size(tagProcessed.DEPTH));
+tagProcessed.FLUO.RegDrkNPQ = NaN(size(tagProcessed.DEPTH));
+tagProcessed.FLUO.RegDrkNPQFitAll = NaN(size(tagProcessed.DEPTH));
+tagProcessed.FLUO.RegDrkNPQFitBnd = NaN(size(tagProcessed.DEPTH));
+
 % Only proceed with processing if there is any usable data
 if ~all(ProfileInfo_FLUO.noData)
     %% Dark correction

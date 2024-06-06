@@ -171,7 +171,7 @@ ProfileInfo = array2table(NaN(tagMetadata.nProfs, numel(var_names)),'VariableNam
 
 % Write data to genData table
 ProfileInfo.Profile = (1 : tagMetadata.nProfs)';
-ProfileInfo.TagID = repmat(tagMetadata.platform_code,tagMetadata.nProfs,1);
+ProfileInfo.TagID = repmat(tagMetadata.smru_platform_code,tagMetadata.nProfs,1);
 ProfileInfo.Date = dateYMD;
 ProfileInfo.DeployDay = floor(datenum(dateYMD)) - floor(datenum(dateYMD(1))) + 1;
 ProfileInfo.Lon = tagData.LONGITUDE;
