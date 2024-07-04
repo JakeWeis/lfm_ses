@@ -161,6 +161,7 @@ var_names = {...
     'CumDistance', ...              % cumulative distance travelled by seal across all profiles
     'Processed', ...                % true/false: profile processed
     'BathymetryAtProf', ...         % bathymetry at profile location
+    'SeaIceConcAtProf', ...         % sea ice concentrations at profile location
     'TimeOfDay_UTC', ...            % hour of the day (UTC) of the profile
     'SolarAlt', ...                 % solar altitude value (angle, in dregrees)
     'Daytime', ...                  % true/false: daytime profile
@@ -270,6 +271,36 @@ for iP = 1 : tagMetadata.nProfs
     end
 end
 
+%% Get sea ice concentration along seal path
+% Load sea ice spatial grid and projection (product: Bremen University ASI-AMSR2 6km)
+x = ncread(fullfile(root.data.seaice,'asi-AMSR2-s6250-20210601-v5.4.nc'),'x');
+y = ncread(fullfile(root.data.seaice,'asi-AMSR2-s6250-20210601-v5.4.nc'),'y');
+proj = projcrs(3412,"Authority","EPSG");
+% [X,Y] = meshgrid(x,y);
+% [SIC_lat,SIC_lon] = projinv(proj,X,Y);
+
+% Convert profile latitudes and longitudes to x-y coordinates of the sea ice data and find nearest grid point
+[x_prof,y_prof] = projfwd(proj,ProfileInfo.Lat,ProfileInfo.Lon);
+i_x_prof = dsearchn(x,x_prof);
+i_y_prof = dsearchn(y,y_prof);
+% Convert profile date to YYYYMMDD format to find matching sea ice concentration file
+profDates = convertTo(ProfileInfo.Date,'YYYYMMDD');
+
+% Extract sea ice concentration for each profile at given grid point and day
+root_seaice = root.data.seaice;
+SeaIceConcAtProf = ProfileInfo.SeaIceConcAtProf;
+for iP = 1 : numel(profDates)
+    SIC_filepath = fullfile(root_seaice,sprintf('asi-AMSR2-s6250-%i-v5.4.nc',profDates(iP)));
+    
+    if exist(SIC_filepath,'file')
+        SIC = ncread(SIC_filepath,'z');
+        SeaIceConcAtProf(iP) = SIC(i_x_prof(iP),i_y_prof(iP));
+    end
+end
+
+ProfileInfo.SeaIceConcAtProf = SeaIceConcAtProf;
+
+
 %% MLD
 MLD_algo = 3; % 1: Temperature threshold, 2: Salinity threshold, 3: Density threshold
 for iP = 1 : tagMetadata.nProfs
@@ -279,9 +310,9 @@ for iP = 1 : tagMetadata.nProfs
     psal = tagProcessed.PSAL.Reg(:,iP);
     finiteVals = isfinite(pres) & isfinite(temp) & isfinite(psal);
 
-    % Proceed only if finite T, P, and S values available and if at least one observation 
-    % is available beloew the 10 m reference depth 
-    if ~isempty(find(finiteVals,1)) && max(pres(finiteVals)) > 10
+    % Proceed only if finite T, P, and S values available and if at least five observations
+    % are available below the 10 m reference depth (bit of a random number, but normally there should be more data anyway)
+    if ~isempty(find(finiteVals,1)) && max(pres(finiteVals)) > 15
         mld_estimates_p = mld(pres(finiteVals),temp(finiteVals),psal(finiteVals),'metric','threshold')';
         mld_estimates = gsw_z_from_p(mld_estimates_p,repmat(ProfileInfo.Lat(iP),1,3));
         if mld_estimates(MLD_algo) < 0

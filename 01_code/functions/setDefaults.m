@@ -51,7 +51,7 @@ defaultPars.PAR.Epsilon = 1.0000e-6;	    % set Epsilon>0 for PAR negative values
 defaultPars.PAR.nDarkProfiles = 10;
 
 %% default parameters (functional data analysis)
-defaultPars.LFM = load([root.data.seal 'LFMcore.mat'],'LFMcore');
+defaultPars.LFM = load(fullfile(root.data.seal, 'LFMcore.mat'),'LFMcore');
 defaultPars.LFM.nBasis = 30;                  % number of basis functions in functional space
 defaultPars.LFM.nOrder = 4;                   % order of B-splines
 defaultPars.LFM.topBound_lfm = 5;

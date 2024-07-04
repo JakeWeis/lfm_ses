@@ -16,7 +16,7 @@ var_names = {...
     'darkValue', ...            % dark value (median of 190 m-200 m values)
     'darkValCorr', ...          % dark value for correction (movmedian + linear fit)
     'relativeSD_ML', ...        % relative SD within mixing layer
-    'NPQDepth', ...         % depth from which NPQ correction is applied (see sesf045 script)
+    'NPQDepth', ...             % depth from which NPQ correction is applied (see sesf045 script)
     'surfaceVal', ...           % surface fluorescence value
     'maxFluoDepth', ...         % depth of fluo max value
     'maxFluoValue', ...         % fluo max value
@@ -64,27 +64,29 @@ if ~all(ProfileInfo_FLUO.noData)
     fluoDeep = tagProcessed.FLUO.Reg(-defaultPars.CHL.maxCHLA_depth-(darkDepthDelta-1) : -defaultPars.CHL.maxCHLA_depth,:);
     ProfileInfo_FLUO.darkValue = fillmissing(median(fluoDeep,1,'omitnan'),'nearest')';
 
-    % Dark value smoothing
-    nDays = 10;   % time window to be used for smoothing (days), start with 10 days and reduce if obs time period is too short
-    darkValCorr = movmedian(ProfileInfo_FLUO.darkValue,ceil(tagMetadata.nProfs/max(ProfileInfo.DeployDay)*nDays),'Endpoints','fill');
-    darkValCorr = fillmissing(darkValCorr,'nearest');
-    while all(isnan(darkValCorr))
-        % if dark values are all NaN, the median smoothing window was too big
-        % reduce window by 1 day until dark values are retrieved
-        nDays = nDays-1;
+    if ~all(isnan(ProfileInfo_FLUO.darkValue))
+        % Dark value smoothing
+        nDays = 10;   % time window to be used for smoothing (days), start with 10 days and reduce if obs time period is too short
         darkValCorr = movmedian(ProfileInfo_FLUO.darkValue,ceil(tagMetadata.nProfs/max(ProfileInfo.DeployDay)*nDays),'Endpoints','fill');
         darkValCorr = fillmissing(darkValCorr,'nearest');
+        while all(isnan(darkValCorr))
+            % if dark values are all NaN, the median smoothing window was too big
+            % reduce window by 1 day until dark values are retrieved
+            nDays = nDays-1;
+            darkValCorr = movmedian(ProfileInfo_FLUO.darkValue,ceil(tagMetadata.nProfs/max(ProfileInfo.DeployDay)*nDays),'Endpoints','fill');
+            darkValCorr = fillmissing(darkValCorr,'nearest');
+        end
+
+        % Approximate drift over time by calculating a linear regression through smoothed dark values
+        darkValCorrFit = fitlm(datenum(ProfileInfo.Date),darkValCorr);
+        ProfileInfo_FLUO.darkValCorr = darkValCorrFit.Fitted;
+
+        % Remove dark value and set negative values 0
+        tagProcessed.FLUO.RegDrk = tagProcessed.FLUO.Reg;
+        fluoOffset = repmat(ProfileInfo_FLUO.darkValCorr',size(tagProcessed.FLUO.RegDrk,1),1);
+        tagProcessed.FLUO.RegDrk = tagProcessed.FLUO.RegDrk - fluoOffset;
+        tagProcessed.FLUO.RegDrk(tagProcessed.FLUO.RegDrk<0) = 0;
     end
-
-    % Approximate drift over time by calculating a linear regression through smoothed dark values
-    darkValCorrFit = fitlm(datenum(ProfileInfo.Date),darkValCorr);
-    ProfileInfo_FLUO.darkValCorr = darkValCorrFit.Fitted;
-
-    % Remove dark value and set negative values 0
-    tagProcessed.FLUO.RegDrk = tagProcessed.FLUO.Reg;
-    fluoOffset = repmat(ProfileInfo_FLUO.darkValCorr',size(tagProcessed.FLUO.RegDrk,1),1);
-    tagProcessed.FLUO.RegDrk = tagProcessed.FLUO.RegDrk - fluoOffset;
-    tagProcessed.FLUO.RegDrk(tagProcessed.FLUO.RegDrk<0) = 0;
 
 
     %% Detect and remove constant part of the FLUO profile at depth
@@ -149,9 +151,9 @@ if ~all(ProfileInfo_FLUO.noData)
     FLUOsmooth(finiteVals) = fillmissing(FLUOsmooth(finiteVals),'nearest');
 
     for iP = 1 : tagMetadata.nProfs
-        % Find the shallower of the MLD and quenching depth (>15 mol quanta): "NPQ layer"
-        if isfinite(ProfileInfo_PAR.quenchDepth(iP)) && isfinite(ProfileInfo.MLD(iP))
-            iZ_NPQ = abs(round(max([ProfileInfo.MLD(iP),ProfileInfo_PAR.quenchDepth(iP)])));
+        % Find the shallower of the MLD*0.9 and quenching depth (>15 mol quanta): "NPQ layer"
+        if isfinite(ProfileInfo_PAR.quenchDepth(iP)) || isfinite(ProfileInfo.MLD(iP))
+            iZ_NPQ = abs(round(max([ProfileInfo.MLD(iP)*.9,ProfileInfo_PAR.quenchDepth(iP)])));
         else
             iZ_NPQ = NaN;
         end
