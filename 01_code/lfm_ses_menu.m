@@ -10,7 +10,8 @@ root.data.seal   = fullfile(root.proj, '00_data','seal');
 root.data.seaice  = fullfile(root.proj, '00_data','seaice');
 
 % input data directory (TO BE SPECIFIED AS INPUT TO)
-root.input       = '/Volumes/PhData/PD DATA/SUBSET/FLUO_LIGHT';
+root.input       = '/Volumes/PhData/PD DATA/SUBSET/FLUO';
+% root.input       = '/Volumes/PhData/PD DATA/BGCArgo/FLUO_LIGHT/Profiles';
 root.output      = fullfile(root.input, 'OUT');
 if ~isfolder(root.output)
     mkdir(root.output)
@@ -31,36 +32,33 @@ else
     fprintf('Loading <strong>ETOPO 2022 Global Relief Model</strong>. \x2713\n');
 end
 
-%% Tag data processing
-fprintf('\n<strong>Begin processing tags.</strong>\n\n')
+%% Seal tag/float data processing
+fprintf('\n<strong>Begin processing platform data.</strong>\n\n')
 % Iterate through all NetCDF files in the input directory
 allFiles = dirPaths(fullfile(root.input, '*.nc'));
-nTags = numel(allFiles);
+nFiles = numel(allFiles);
 
-parfor iTag = 1 : numel(allFiles)
+parfor iPlatform = 1 : numel(allFiles)
     %% Processing
-    % Get/display tag name currently being processed
-    tagRef = allFiles(iTag).name;
-    disp(repmat('-',1,numel(['Processing tag ',num2str(iTag),'/',num2str(nTags),': ',tagRef])))
-    fprintf(['Processing tag %01.0f/%01.0f: <strong>',tagRef,'</strong>\n'],iTag,nTags);
-    disp(repmat('-',1,numel(['Processing tag ',num2str(iTag),'/',num2str(nTags),': ',tagRef])))
+    % Platform ID
+    platformID = allFiles(iPlatform).name;
+
+    % Display platform being processed
+    disp(repmat('-',1,numel(sprintf('Processing platform %i/%i: %s',iPlatform,nFiles,platformID))))
+    fprintf('Processing platform %i/%i: <strong>%s</strong>\n',iPlatform,nFiles,platformID);
+    disp(repmat('-',1,numel(sprintf('Processing platform %i/%i: %s',iPlatform,nFiles,platformID))))
 
     % Load data
-    [tagData,tagMetadata,tagProcessed,ProfileInfo] = loadData(root,tagRef,bathymetry,defaultPars);
+    [Data,ProfileInfo] = loadData(root,platformID,bathymetry,defaultPars);
 
     % Process PAR data
-    [tagProcessed,ProfileInfo_PAR] = processPAR(tagMetadata,tagProcessed,ProfileInfo,defaultPars);
+    [Data,ProfileInfo] = processPAR(Data,ProfileInfo,defaultPars);
 
     % Process Fluorescence data
-    [tagProcessed,ProfileInfo_FLUO] = processFLUO(tagMetadata,tagProcessed,ProfileInfo,ProfileInfo_PAR,defaultPars);
+    [Data,ProfileInfo] = processFLUO(Data,ProfileInfo,defaultPars);
 
     %% Save output
-    s = struct('ProfileInfo',ProfileInfo,'ProfileInfo_PAR',ProfileInfo_PAR,'ProfileInfo_FLUO',ProfileInfo_FLUO, ...
-        'tagData', tagData,'tagMetadata', tagMetadata, 'tagProcessed', tagProcessed);
-    save(fullfile(root.output,[tagRef(1:end-3),'_PROCESSED.mat']), '-fromstruct', s)
-
-    % save(fullfile(root.output,[tagRef(1:end-3),'_PROCESSED.mat']), ...
-    %     'ProfileInfo','ProfileInfo_PAR','ProfileInfo_FLUO', ...
-    %     'tagData','tagMetadata','tagProcessed')
+    s = struct('ProfileInfo',ProfileInfo,'Data',Data);
+    save(fullfile(root.output,[platformID(1:end-3),'_PROCESSED.mat']), '-fromstruct', s)
        
 end
