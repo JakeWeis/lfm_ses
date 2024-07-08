@@ -193,6 +193,7 @@ if ~all(ProfileInfo.PAR.noData)
     % Assign QC flags to PAR profiles and individual observations based on how closely light follows the expected exponential
     % increasing trend towards the surface. Sensor saturation is assumed where consecutive near-surface observations reach a
     % plateau that is within the highest values measured by the respective tag.
+    % NB: Saturation correction is only applied to seal tag data (BGC-Argo PAR sensors do not saturate)
     %
     % The following QC flags are assigned:
     % 0 - Profile/observations that do not exceed 1 umol quanta m-2 s-1 (no QC performed)
@@ -263,7 +264,8 @@ if ~all(ProfileInfo.PAR.noData)
                         median(logPAR(flagged_shallow_obs)) >= tagHighPAR & ...
                         median(diff(logPAR(flagged_shallow_obs))) - mad(diff(logPAR(flagged_shallow_obs)),1) <= 0;
 
-                    if isSaturated
+                    % Saturation correction is only applied to seal tag data (BGC-Argo PAR sensors do not saturate)
+                    if isSaturated && strcmp(Data.MetaData.platform_type,'sealtag')
                         % Extend depths identified as being saturated to the first available observation
                         flagged_shallow_obs = firstObs(iP) : flagged_shallow_obs(end);
                         

@@ -34,7 +34,16 @@ reference_date = '1950-01-01 00:00:00'; % see platform_data.REFERENCE_DATE_TIME
 dateYMD = datetime(Data.Raw.JULD_LOCATION + datenum(reference_date),'ConvertFrom','datenum');
 Data.Raw.DATETIME = repmat(dateYMD',size(Data.Raw.PRES,1),1);
 
+% Remove bad Argo CTD data (QC flags ~= 1,2,5,8)
+qc_keep = [1,2,5,8];
+if strcmp(platform_type, 'float')
+    Data.Raw.PRES_ADJUSTED_QC(~ismember(Data.Raw.PRES_ADJUSTED_QC,qc_keep)) = NaN;
+    Data.Raw.TEMP_ADJUSTED_QC(~ismember(Data.Raw.TEMP_ADJUSTED_QC,qc_keep)) = NaN;
+    Data.Raw.PSAL_ADJUSTED_QC(~ismember(Data.Raw.PSAL_ADJUSTED_QC,qc_keep)) = NaN;
+end
+
 % Calculate density from abs. salinity, conservative temperature and pressure (using GSW equations)
+Data.Raw.PRES_ADJUSTED(Data.Raw.PRES_ADJUSTED<0) = NaN;   % Set negative pressures (at the surface) NaN
 SA = gsw_SA_from_SP(Data.Raw.PSAL_ADJUSTED,Data.Raw.PRES_ADJUSTED,Data.Raw.LONGITUDE,Data.Raw.LATITUDE);
 CT = gsw_CT_from_t(SA,Data.Raw.TEMP_ADJUSTED,Data.Raw.PRES_ADJUSTED);
 Data.Raw.DENS = gsw_rho_CT_exact(SA,CT,0);
@@ -48,8 +57,12 @@ switch platform_type
     case 'float'
         % Float metadata stored in separate file
         float_metadata_filename = strrep(platformID,'Sprof','meta');
-        Data.MetaData = ncload_struct(fullfile(root.input, platformID));
+        Data.MetaData = ncloadatt_struct(fullfile(root.input, platformID));
         Data.MetaData.platform_type = 'float';
+        Data.MetaData.NegativeLight.n_obs_unadj = numel(find(Data.Raw.DOWNWELLING_PAR<0));
+        Data.MetaData.NegativeLight.n_prof_unadj = numel(find(any(Data.Raw.DOWNWELLING_PAR<0)));
+        Data.MetaData.NegativeLight.n_obs_adj = numel(find(Data.Raw.DOWNWELLING_PAR_ADJUSTED<0));
+        Data.MetaData.NegativeLight.n_prof_adj = numel(find(any(Data.Raw.DOWNWELLING_PAR_ADJUSTED<0)));
 end
 
 % Number of profiles and number of depth levels
@@ -115,44 +128,72 @@ Data.Processed.PAR.lin.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaDat
 for iP = 1 : Data.MetaData.nProfs
     % depth vector for profile i (irregular step)
     depth_irreg = Data.Raw.DEPTH(:,iP);
-    depth_isnan = ~isfinite(depth_irreg);
-    depth_irreg(depth_isnan) = [];
 
-    % Pressure
-    pres_irreg = Data.Raw.PRES_ADJUSTED(:,iP);
-    pres_irreg(depth_isnan) = [];
-    Data.Processed.PRES.Reg(:,iP) = interp1(depth_irreg,pres_irreg,defaultPars.depthInterpGrid,'linear');
+    % Identify and remove NaNs and duplicate depth levels
+    iZ_nan = ~isfinite(depth_irreg);
+    [~, iUnq] = unique(depth_irreg,'first');
+    iZ_dupe = not(ismember(1:numel(depth_irreg),iUnq))';
+    depth_irreg(iZ_nan|iZ_dupe) = [];
+    
+    % Only proceed with interpolation if profile has any finite data
+    if numel(depth_irreg)>1
+        % Pressure
+        pres_irreg = Data.Raw.PRES_ADJUSTED(~(iZ_nan|iZ_dupe),iP);
+        Data.Processed.PRES.Reg(:,iP) = interp1(depth_irreg,pres_irreg,defaultPars.depthInterpGrid,'linear',NaN);
 
-    % Temperature
-    temp_irreg = Data.Raw.TEMP_ADJUSTED(:,iP);
-    temp_irreg(depth_isnan) = [];
-    Data.Processed.TEMP.Reg(:,iP) = interp1(depth_irreg,temp_irreg,defaultPars.depthInterpGrid,'linear');
+        % Temperature
+        temp_irreg = Data.Raw.TEMP_ADJUSTED(~(iZ_nan|iZ_dupe),iP);
+        Data.Processed.TEMP.Reg(:,iP) = interp1(depth_irreg,temp_irreg,defaultPars.depthInterpGrid,'linear',NaN);
 
-    % Practical salinity
-    psal_irreg = Data.Raw.PSAL_ADJUSTED(:,iP);
-    psal_irreg(depth_isnan) = [];
-    Data.Processed.PSAL.Reg(:,iP) = interp1(depth_irreg,psal_irreg,defaultPars.depthInterpGrid,'linear');
+        % Practical salinity
+        psal_irreg = Data.Raw.PSAL_ADJUSTED(~(iZ_nan|iZ_dupe),iP);
+        Data.Processed.PSAL.Reg(:,iP) = interp1(depth_irreg,psal_irreg,defaultPars.depthInterpGrid,'linear',NaN);
 
-    % Chl fluorescence
-    if isfield(Data.Raw,'CHLA')
-        fluo_irreg = Data.Raw.CHLA(:,iP);
-        fluo_irreg(depth_isnan) = [];
-        Data.Processed.FLUO.Reg(:,iP) = interp1(depth_irreg,fluo_irreg,defaultPars.depthInterpGrid,'linear');
-    end
+        % Chl fluorescence
+        if isfield(Data.Raw,'CHLA')
+            fluo_irreg = Data.Raw.CHLA(~(iZ_nan|iZ_dupe),iP);
+            if strcmp(platform_type, 'sealtag')
+                Data.Processed.FLUO.Reg(:,iP) = interp1(depth_irreg,fluo_irreg,defaultPars.depthInterpGrid,'linear',NaN);
+            elseif strcmp(platform_type, 'float')
+                % Only consider depths at which Fluo observations are available 
+                % (different to seal tag data, BGC variables are not measured at every available depth level)
+                fluo_isnan = ~isfinite(fluo_irreg);
+                if numel(find(~fluo_isnan))>1
+                    Data.Processed.FLUO.Reg(:,iP) = interp1(depth_irreg(~fluo_isnan),fluo_irreg(~fluo_isnan),defaultPars.depthInterpGrid,'linear',NaN);
+                end
+            end
+        end
 
-    % LIGHT fluorescence
-    if isfield(Data.Raw,'LIGHT')
-        par_irreg = Data.Raw.LIGHT(:,iP);
-        par_irreg(depth_isnan) = [];
-        Data.Processed.PAR.log.Reg(:,iP) = interp1(depth_irreg,par_irreg,defaultPars.depthInterpGrid,'linear');
-        Data.Processed.PAR.lin.Reg(:,iP) = exp(Data.Processed.PAR.log.Reg(:,iP));
+        % LIGHT fluorescence
+        if strcmp(platform_type, 'sealtag') && isfield(Data.Raw,'LIGHT') % seal tag PAR field
+            par_irreg = Data.Raw.LIGHT(~(iZ_nan|iZ_dupe),iP);
+            % Seal tag raw light data is given in ln(PAR)
+            Data.Processed.PAR.log.Reg(:,iP) = interp1(depth_irreg,par_irreg,defaultPars.depthInterpGrid,'linear',NaN);
+            % Convert to linear PAR
+            Data.Processed.PAR.lin.Reg(:,iP) = exp(Data.Processed.PAR.lin.Reg(:,iP));
+            % Also convert raw PAR data for consistency with BGC Argo PAR data
+            Data.Raw.LIGHT = exp(Data.Raw.LIGHT);
+
+        elseif strcmp(platform_type, 'float') && isfield(Data.Raw,'DOWNWELLING_PAR') % float PAR field
+            par_irreg = Data.Raw.DOWNWELLING_PAR(~(iZ_nan|iZ_dupe),iP);
+            % Only consider depths at which PAR observations are available 
+            % (different to seal tag data, BGC variables are not measured at every available depth level)
+            ipar_isnan = ~isfinite(par_irreg);
+            if numel(find(~ipar_isnan))>1
+                % Seal tag raw light data is given in PAR (not ln)
+                Data.Processed.PAR.lin.Reg(:,iP) = interp1(depth_irreg(~ipar_isnan),par_irreg(~ipar_isnan),defaultPars.depthInterpGrid,'linear',NaN);
+                % Remove negative/0 PAR values before calculating ln(PAR)
+                Data.Processed.PAR.lin.Reg(Data.Processed.PAR.lin.Reg(:,iP)<=0,iP) = NaN;
+                Data.Processed.PAR.log.Reg(:,iP) = log(Data.Processed.PAR.lin.Reg(:,iP));
+            end
+        end
     end
 end
 
 %% create genData table to store general profile information
 var_names = {...
     'Profile', ...                  % profile number
-    'TagID', ...                    % seal tag ID
+    'PlatformID', ...               % seal tag/float ID
     'Date', ...                     % date
     'DeployDay', ...                % deployment day
     'Lon', ...                      % lon
@@ -172,7 +213,12 @@ ProfileInfo.General = array2table(NaN(Data.MetaData.nProfs, numel(var_names)),'V
 
 % Write data to genData table
 ProfileInfo.General.Profile = (1 : Data.MetaData.nProfs)';
-ProfileInfo.General.TagID = repmat(Data.MetaData.smru_platform_code,Data.MetaData.nProfs,1);
+switch platform_type
+    case 'sealtag'
+        ProfileInfo.General.platformID = repmat(Data.MetaData.smru_platform_code,Data.MetaData.nProfs,1);
+    case 'float'
+        ProfileInfo.General.PlatformID = ncread(fullfile(root.input, platformID),'PLATFORM_NUMBER')';
+end
 ProfileInfo.General.Date = dateYMD;
 ProfileInfo.General.DeployDay = floor(datenum(dateYMD)) - floor(datenum(dateYMD(1))) + 1;
 ProfileInfo.General.Lon = Data.Raw.LONGITUDE;
@@ -310,9 +356,8 @@ for iP = 1 : Data.MetaData.nProfs
     psal = Data.Processed.PSAL.Reg(:,iP);
     finiteVals = isfinite(pres) & isfinite(temp) & isfinite(psal);
 
-    % Proceed only if finite T, P, and S values available and if at least five observations
-    % are available below the 10 m reference depth (bit of a random number, but normally there should be more data anyway)
-    if ~isempty(find(finiteVals,1)) && max(pres(finiteVals)) > 15
+    % Proceed only if finite T, P, and S values available and if at least 3 observations are available below the 10 m reference depth
+    if numel(find(pres(finiteVals)>10))>3
         mld_estimates_p = mld(pres(finiteVals),temp(finiteVals),psal(finiteVals),'metric','threshold')';
         mld_estimates = gsw_z_from_p(mld_estimates_p,repmat(ProfileInfo.General.Lat(iP),1,3));
         if mld_estimates(MLD_algo) < 0
@@ -322,7 +367,7 @@ for iP = 1 : Data.MetaData.nProfs
             % Else use the mean of the T and/or S threshold estimates (whichever yields an MLD <0m)
             ProfileInfo.General.MLD(iP) = mean(mld_estimates(mld_estimates<0));
         end
-        
+
     end
 end
 
