@@ -52,6 +52,9 @@ for iP = i_profiles
         % Calculate Kd as the derivative function of the PAR fit
         fdKd_iP = deriv_fd(fdFit_PAR);
         Data.Processed.PAR.Kd.FitAll(fitInterval,iP) = -eval_fd(fdKd_iP,fitInterval);
+    else
+        % If warning was issued, ignore profile in the following processing steps
+        i_profiles(i_profiles==iP) = [];
     end
 end
 
