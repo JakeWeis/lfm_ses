@@ -41,14 +41,18 @@ for iP = i_profiles
     fdPar_iP = fdPar(fdObj,lfdObj,lambda);
 
     % Monotone smooth fit
+    lastwarn('')
     [~, ~, fdFit_PAR, ~, ~, ~, ~] = smooth_monotone(fitInterval,PAR_fit,fdPar_iP);
+    % Catch warning that PAR data is badly scaled for monotone fit, do not proceed to calculate fitted data in that case
+    [~, warnID] = lastwarn;
+    if ~strcmp(warnID, 'MATLAB:nearlySingularMatrix')
+        % Evaluate fit and store in platform_processed PAR structure
+        Data.Processed.PAR.log.RegDrkSatFitAll(fitInterval,iP) = eval_fd(fdFit_PAR,fitInterval);
 
-    % Evaluate fit and store in platform_processed PAR structure
-    Data.Processed.PAR.log.RegDrkSatFitAll(fitInterval,iP) = eval_fd(fdFit_PAR,fitInterval);
-
-    % Calculate Kd as the derivative function of the PAR fit
-    fdKd_iP = deriv_fd(fdFit_PAR);
-    Data.Processed.PAR.Kd.FitAll(fitInterval,iP) = -eval_fd(fdKd_iP,fitInterval);
+        % Calculate Kd as the derivative function of the PAR fit
+        fdKd_iP = deriv_fd(fdFit_PAR);
+        Data.Processed.PAR.Kd.FitAll(fitInterval,iP) = -eval_fd(fdKd_iP,fitInterval);
+    end
 end
 
 % Compute linear PAR array
