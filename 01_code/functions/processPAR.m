@@ -84,10 +84,11 @@ if ~all(ProfileInfo.PAR.noData)
     PAR_lin_RegDrk = Data.Processed.PAR.lin.Reg;
     PAR_log_RegDrk = Data.Processed.PAR.log.Reg;
 
-    rng(0,'twister')                            % Reset random number generator algorithm (for reproducibility of the random subsampling)
-    deepProfs = find(lastObs > 100)';           % Indicies of all deep profiles (deeper than 100 m)
-    nRep = 10;                                  % Number of repetitions of random deep profile subsamples
-    darkValues = NaN(Data.MetaData.nProfs,nRep);  % Dark value matrix
+    rng(0,'twister')                                % Reset random number generator algorithm (for reproducibility of the random subsampling)
+    deepProfs = find(lastObs > 100)';               % Indicies of all deep profiles (deeper than 100 m)
+    nRep = 10;                                      % Number of repetitions of random deep profile subsamples
+    darkValues = NaN(Data.MetaData.nProfs,nRep);    % Dark value matrix
+    darkDepths = NaN(Data.MetaData.nProfs,nRep);    % Dark depth matrix
     for iRep = 1 : nRep
         % Randomly subsample deep profiles to be used for the dark value calculation (N defined in setDefaults)
         nSamples = min(defaultPars.PAR.nDarkProfiles,numel(deepProfs)); % N subsamples cannot be less than the number of deep profiles to sample from
@@ -121,6 +122,7 @@ if ~all(ProfileInfo.PAR.noData)
             %% 2) Detect PAR dark value (Organelli et al., 2016)
             % Initialize values
             PAR_dark = NaN;     % dark PAR value
+            Z_dark = NaN;       % dark depth
 
             % Lilliefors test requires at least 4 valid observations
             if lastObs(iP) - firstObs(iP) + 1 >= 4
@@ -140,8 +142,9 @@ if ~all(ProfileInfo.PAR.noData)
                         % if null hypothesis is not rejected (non-normal distribution above dark signal) increase counter by 1
                         ct_h1 = ct_h1 + 1;
 
-                        if ct_h1 == n_h1
-                            % If non-dark signal is found at n consecutive depths then the dark signal starts at iZ+n
+                        if ct_h1 == n_h1 || iZ == firstObs(iP)
+                            % If non-dark signal is found at n consecutive depths (or if dark signal extends to the surface)
+                            % >> dark signal starts at iZ+n
                             Z_dark = iZ + n_h1;
                             PAR_dark = median(PAR_lin_RegDrk(Z_dark:lastObs(iP),iP));
 
@@ -155,6 +158,9 @@ if ~all(ProfileInfo.PAR.noData)
 
             % Write to parData table
             darkValues(iP,iRep) = PAR_dark;	 % all dark PAR values of the selected profiles
+            % Write to parData table
+            darkDepths(iP,iRep) = Z_dark;	 % all dark PAR values of the selected profiles
+
         end
     end
 

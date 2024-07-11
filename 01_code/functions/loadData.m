@@ -37,9 +37,13 @@ Data.Raw.DATETIME = repmat(dateYMD',size(Data.Raw.PRES,1),1);
 % Remove bad Argo CTD data (QC flags ~= 1,2,5,8)
 qc_keep = [1,2,5,8];
 if strcmp(platform_type, 'float')
-    Data.Raw.PRES_ADJUSTED_QC(~ismember(Data.Raw.PRES_ADJUSTED_QC,qc_keep)) = NaN;
-    Data.Raw.TEMP_ADJUSTED_QC(~ismember(Data.Raw.TEMP_ADJUSTED_QC,qc_keep)) = NaN;
-    Data.Raw.PSAL_ADJUSTED_QC(~ismember(Data.Raw.PSAL_ADJUSTED_QC,qc_keep)) = NaN;
+    Data.Raw.PRES_ADJUSTED(~ismember(str2double(num2cell(Data.Raw.PRES_QC)),qc_keep)) = NaN;
+    Data.Raw.TEMP_ADJUSTED(~ismember(str2double(num2cell(Data.Raw.TEMP_QC)),qc_keep)) = NaN;
+    Data.Raw.PSAL_ADJUSTED(~ismember(str2double(num2cell(Data.Raw.PSAL_QC)),qc_keep)) = NaN;
+
+    % Remove PAR/F values where 'adjusted' QC flag is 4 (bad)
+    Data.Raw.DOWNWELLING_PAR(ismember(str2double(num2cell(Data.Raw.DOWNWELLING_PAR_ADJUSTED_QC)),4)) = NaN;
+    Data.Raw.CHLA(ismember(str2double(num2cell(Data.Raw.CHLA_ADJUSTED_QC)),4)) = NaN;
 end
 
 % Calculate density from abs. salinity, conservative temperature and pressure (using GSW equations)
@@ -130,6 +134,7 @@ for iP = 1 : Data.MetaData.nProfs
     depth_irreg = Data.Raw.DEPTH(:,iP);
 
     % Identify and remove NaNs and duplicate depth levels
+    % --> Duplicate depths can occur in BGC Argo data. 
     iZ_nan = ~isfinite(depth_irreg);
     [~, iUnq] = unique(depth_irreg,'first');
     iZ_dupe = not(ismember(1:numel(depth_irreg),iUnq))';
@@ -159,32 +164,31 @@ for iP = 1 : Data.MetaData.nProfs
                 % (different to seal tag data, BGC variables are not measured at every available depth level)
                 fluo_isnan = ~isfinite(fluo_irreg);
                 if numel(find(~fluo_isnan))>1
-                    Data.Processed.FLUO.Reg(:,iP) = interp1(depth_irreg(~fluo_isnan),fluo_irreg(~fluo_isnan),defaultPars.depthInterpGrid,'linear',NaN);
+                    Data.Processed.FLUO.Reg(:,iP) = interp1(depth_irreg(~fluo_isnan),movmedian(fluo_irreg(~fluo_isnan),5,'omitnan'),defaultPars.depthInterpGrid,'linear',NaN);
                 end
             end
         end
 
         % LIGHT fluorescence
+        % NB: Linearly interpolates ln(PAR), since light increases exponentially towards the surface
         if strcmp(platform_type, 'sealtag') && isfield(Data.Raw,'LIGHT') % seal tag PAR field
-            par_irreg = Data.Raw.LIGHT(~(iZ_nan|iZ_dupe),iP);
-            % Seal tag raw light data is given in ln(PAR)
-            Data.Processed.PAR.log.Reg(:,iP) = interp1(depth_irreg,par_irreg,defaultPars.depthInterpGrid,'linear',NaN);
+            % Seal tag raw PAR data is by default given in ln(PAR)
+            parlog_irreg = Data.Raw.LIGHT(~(iZ_nan|iZ_dupe),iP);
+            Data.Processed.PAR.log.Reg(:,iP) = interp1(depth_irreg,parlog_irreg,defaultPars.depthInterpGrid,'linear',NaN);
             % Convert to linear PAR
-            Data.Processed.PAR.lin.Reg(:,iP) = exp(Data.Processed.PAR.lin.Reg(:,iP));
-            % Also convert raw PAR data for consistency with BGC Argo PAR data
-            Data.Raw.LIGHT = exp(Data.Raw.LIGHT);
+            Data.Processed.PAR.lin.Reg(:,iP) = exp(Data.Processed.PAR.log.Reg(:,iP));
 
         elseif strcmp(platform_type, 'float') && isfield(Data.Raw,'DOWNWELLING_PAR') % float PAR field
+            % BGC Argo PAR data is given in linear PAR, needs to be log-transformed prior to interpolation
             par_irreg = Data.Raw.DOWNWELLING_PAR(~(iZ_nan|iZ_dupe),iP);
+            par_irreg(par_irreg<=0) = NaN;      % remove negative/0 values before log-transformation
+            parlog_irreg = log(par_irreg);
             % Only consider depths at which PAR observations are available 
-            % (different to seal tag data, BGC variables are not measured at every available depth level)
-            ipar_isnan = ~isfinite(par_irreg);
-            if numel(find(~ipar_isnan))>1
-                % Seal tag raw light data is given in PAR (not ln)
-                Data.Processed.PAR.lin.Reg(:,iP) = interp1(depth_irreg(~ipar_isnan),par_irreg(~ipar_isnan),defaultPars.depthInterpGrid,'linear',NaN);
-                % Remove negative/0 PAR values before calculating ln(PAR)
-                Data.Processed.PAR.lin.Reg(Data.Processed.PAR.lin.Reg(:,iP)<=0,iP) = NaN;
-                Data.Processed.PAR.log.Reg(:,iP) = log(Data.Processed.PAR.lin.Reg(:,iP));
+            % --> Different to seal tag data, BGC variables are not measured at every available depth level
+            i_par_isnan = ~isfinite(parlog_irreg);
+            if numel(find(~i_par_isnan))>1
+                Data.Processed.PAR.log.Reg(:,iP) = interp1(depth_irreg(~i_par_isnan),parlog_irreg(~i_par_isnan),defaultPars.depthInterpGrid,'linear',NaN);
+                Data.Processed.PAR.lin.Reg(:,iP) = exp(Data.Processed.PAR.log.Reg(:,iP));
             end
         end
     end

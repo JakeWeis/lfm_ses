@@ -42,7 +42,7 @@ defaultPars.PAR.UTC_offset = 0;             % [hrs] offset from UTC, during stan
 defaultPars.PAR.DST = false;                % local time is without daylight savings time
 
 % daylight filter
-defaultPars.PAR.SolarAlt_DayTime = 20;	    % threshold to be applied for daylight filter (>20º solar elevation)
+defaultPars.PAR.SolarAlt_DayTime = 0;	    % threshold to be applied for daylight filter (>0º solar elevation)
 defaultPars.PAR.delta_constantPAR = 1E-8;   % define standard delta between min and max of profile to eliminate profile for being a constant profile
 defaultPars.PAR.Epsilon = 1.0000e-6;	    % set Epsilon>0 for PAR negative values (further use of log)
 
