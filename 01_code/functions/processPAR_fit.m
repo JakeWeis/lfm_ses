@@ -1,21 +1,21 @@
-function Data = processPAR_fit(Data,ProfileInfo,defaultPars)
+function Data = processPAR_fit(Data,ProfileInfo,defaultPars,dataType)
 
 %% Shallowest and deepest available observation
-firstObs = find_ndim(isfinite(Data.Processed.PAR.log.RegDrkSat),1,'first')';
-lastObs = find_ndim(isfinite(Data.Processed.PAR.log.RegDrkSat),1,'last')';
+firstObs = find_ndim(isfinite(Data.Processed.(dataType).log.RegDrkSat),1,'first')';
+lastObs = find_ndim(isfinite(Data.Processed.(dataType).log.RegDrkSat),1,'last')';
 
 %% Functional fit: full profile (where observations are available)
 % Select profiles for fit computation
 i_profiles = find(...
     ProfileInfo.General.Processed &...              % Passed processing checks in loadData
     ProfileInfo.General.Daytime &...                % Daytime profile
-    sum(~isnan(Data.Processed.PAR.log.RegDrkSat))' >= 3)';  % At least three values
+    sum(~isnan(Data.Processed.(dataType).log.RegDrkSat))' >= 3)';  % At least three values
 % i_profiles = find(...
 %     ProfileInfo.General.Processed &...              % Passed processing checks in loadData
 %     ProfileInfo.General.Daytime &...                % Daytime profile
-%     ProfileInfo.PAR.PAR_QC == 1 &...
-%     all(isfinite(Data.Processed.PAR.log.RegDrkSat(21:24,:)))' & ...
-%     sum(~isnan(Data.Processed.PAR.log.RegDrkSat))' >= 3)';  % At least three values
+%     ProfileInfo.(dataType).PAR_QC == 1 &...
+%     all(isfinite(Data.Processed.(dataType).log.RegDrkSat(21:24,:)))' & ...
+%     sum(~isnan(Data.Processed.(dataType).log.RegDrkSat))' >= 3)';  % At least three values
 
 % Fit parameters
 % Initialise bspline fit coefficients
@@ -26,7 +26,7 @@ lfdObj = 1; % original value in script = 2; penalize curvature of acceleration
 % Compute fit
 for iP = i_profiles
     % Dark/saturation corrected PAR data to compute fit over
-    PAR_fit = Data.Processed.PAR.log.RegDrkSat(:,iP);
+    PAR_fit = Data.Processed.(dataType).log.RegDrkSat(:,iP);
     % ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     % PAR_fit(1:20) = NaN;
     % firstObs(iP) = find_ndim(isfinite(PAR_fit),1,'first')';
@@ -47,11 +47,11 @@ for iP = i_profiles
     [~, warnID] = lastwarn;
     if ~strcmp(warnID, 'MATLAB:nearlySingularMatrix')
         % Evaluate fit and store in platform_processed PAR structure
-        Data.Processed.PAR.log.RegDrkSatFitAll(fitInterval,iP) = eval_fd(fdFit_PAR,fitInterval);
+        Data.Processed.(dataType).log.RegDrkSatFitAll(fitInterval,iP) = eval_fd(fdFit_PAR,fitInterval);
 
         % Calculate Kd as the derivative function of the PAR fit
         fdKd_iP = deriv_fd(fdFit_PAR);
-        Data.Processed.PAR.Kd.FitAll(fitInterval,iP) = -eval_fd(fdKd_iP,fitInterval);
+        Data.Processed.(dataType).Kd.FitAll(fitInterval,iP) = -eval_fd(fdKd_iP,fitInterval);
     else
         % If warning was issued, ignore profile in the following processing steps
         i_profiles(i_profiles==iP) = [];
@@ -59,11 +59,11 @@ for iP = i_profiles
 end
 
 % Compute linear PAR array
-Data.Processed.PAR.lin.RegDrkSatFitAll = exp(Data.Processed.PAR.log.RegDrkSatFitAll);
+Data.Processed.(dataType).lin.RegDrkSatFitAll = exp(Data.Processed.(dataType).log.RegDrkSatFitAll);
 
 %% Extend fitted data to the surface
 % Linearly extrapolate log-transformed light, assuming continuous exponential increase of light to the surface
-Data.Processed.PAR.log.RegDrkSatFitSurf = Data.Processed.PAR.log.RegDrkSatFitAll;
+Data.Processed.(dataType).log.RegDrkSatFitSurf = Data.Processed.(dataType).log.RegDrkSatFitAll;
 
 for iP = i_profiles
     % Depth range over which to calculate the log-transformed increase of light: 
@@ -73,18 +73,18 @@ for iP = i_profiles
         % Linear model through light vs depth over the defined depth range
         PAR_lmfit = fitlm( ...
             -1 : -1 : -lightExtrapDepth, ...
-            Data.Processed.PAR.log.RegDrkSatFitAll(1:lightExtrapDepth,iP));
+            Data.Processed.(dataType).log.RegDrkSatFitAll(1:lightExtrapDepth,iP));
 
-        Data.Processed.PAR.log.RegDrkSatFitSurf(1,iP) = Data.Processed.PAR.log.RegDrkSatFitSurf(firstObs(iP),iP) + PAR_lmfit.Coefficients.Estimate(2)*(firstObs(iP)-1);
-        Data.Processed.PAR.log.RegDrkSatFitSurf(:,iP) = fillmissing(Data.Processed.PAR.log.RegDrkSatFitSurf(:,iP),'linear','EndValues','none');
+        Data.Processed.(dataType).log.RegDrkSatFitSurf(1,iP) = Data.Processed.(dataType).log.RegDrkSatFitSurf(firstObs(iP),iP) + PAR_lmfit.Coefficients.Estimate(2)*(firstObs(iP)-1);
+        Data.Processed.(dataType).log.RegDrkSatFitSurf(:,iP) = fillmissing(Data.Processed.(dataType).log.RegDrkSatFitSurf(:,iP),'linear','EndValues','none');
     end
 end
 
 % Compute linear PAR array
-Data.Processed.PAR.lin.RegDrkSatFitSurf = exp(Data.Processed.PAR.log.RegDrkSatFitSurf);
+Data.Processed.(dataType).lin.RegDrkSatFitSurf = exp(Data.Processed.(dataType).log.RegDrkSatFitSurf);
 
 %% Fit another bspline to the surface-extended data for smoothing
-Data.Processed.PAR.log.RegDrkSatFitSurfSmooth = Data.Processed.PAR.log.RegDrkSatFitSurf;
+Data.Processed.(dataType).log.RegDrkSatFitSurfSmooth = Data.Processed.(dataType).log.RegDrkSatFitSurf;
 
 % Fit parameters
 % Initialise bspline fit coefficients
@@ -97,7 +97,7 @@ for iP = i_profiles
     % Use fitted PAR data from the previous step and linear extrapolate values to the surface (keep NaNs at depth)
     % The linear extrapolation approximates the continuing increase of light to the surface and will be improved by a
     % second spline fit.
-    PAR_fit = Data.Processed.PAR.log.RegDrkSatFitSurf(:,iP);
+    PAR_fit = Data.Processed.(dataType).log.RegDrkSatFitSurf(:,iP);
     fitInterval = find(isfinite(PAR_fit));
     PAR_fit = PAR_fit(fitInterval);
 
@@ -111,19 +111,19 @@ for iP = i_profiles
     [~, ~, fdFit_PAR, ~, ~, ~, ~] = smooth_monotone(fitInterval,PAR_fit,fdPar_iP);
 
     % Evaluate fit and store in platform_processed PAR structure
-    Data.Processed.PAR.log.RegDrkSatFitSurfSmooth(fitInterval,iP) = eval_fd(fdFit_PAR,fitInterval);
+    Data.Processed.(dataType).log.RegDrkSatFitSurfSmooth(fitInterval,iP) = eval_fd(fdFit_PAR,fitInterval);
 
     % % Calculate Kd as the derivative function of the PAR fit
     % fdKd_iP = deriv_fd(fdFit_PAR);
-    % Data.Processed.PAR.Kd.FitAll(fitInterval,iP) = -eval_fd(fdKd_iP,fitInterval);
+    % Data.Processed.(dataType).Kd.FitAll(fitInterval,iP) = -eval_fd(fdKd_iP,fitInterval);
 end
 
 % Compute linear PAR array
-Data.Processed.PAR.lin.RegDrkSatFitSurfSmooth = exp(Data.Processed.PAR.log.RegDrkSatFitSurfSmooth);
+Data.Processed.(dataType).lin.RegDrkSatFitSurfSmooth = exp(Data.Processed.(dataType).log.RegDrkSatFitSurfSmooth);
 
 %% Functional fit (predefined depth interval)
 % Select profiles for fit computation
-lumToFit_bnd = Data.Processed.PAR.log.RegDrkSat;
+lumToFit_bnd = Data.Processed.(dataType).log.RegDrkSat;
 i_profiles = find(...
     (firstObs <= abs(defaultPars.upperDepthBound)...    % Finite data within bounds
     & lastObs >= abs(defaultPars.lowerDepthBound)) &...
@@ -152,11 +152,11 @@ if ~isempty(i_profiles)
     [~, ~, fdFit_PAR, ~, ~, ~, ~] = smooth_monotone(fitInterval,PAR_fit,fdPar_iP);
 
     % Evaluate fit and store in PAR
-    Data.Processed.PAR.log.RegDrkSatFitBnd(fitInterval,i_profiles) = eval_fd(fdFit_PAR,fitInterval);
+    Data.Processed.(dataType).log.RegDrkSatFitBnd(fitInterval,i_profiles) = eval_fd(fdFit_PAR,fitInterval);
 
     % Calculate Kd as the derivative function of the PAR fit
     fdKd = deriv_fd(fdFit_PAR);
-    Data.Processed.PAR.Kd.FitBnd(fitInterval,i_profiles) = -eval_fd(fdKd,fitInterval);
+    Data.Processed.(dataType).Kd.FitBnd(fitInterval,i_profiles) = -eval_fd(fdKd,fitInterval);
 
     %% LFM CHL PREDICTION FROM KD
     % recover Blind coeffs
@@ -183,4 +183,4 @@ if ~isempty(i_profiles)
 end
 
 % Compute linear PAR array
-Data.Processed.PAR.lin.RegDrkSatFitBnd = exp(Data.Processed.PAR.log.RegDrkSatFitBnd);
+Data.Processed.(dataType).lin.RegDrkSatFitBnd = exp(Data.Processed.(dataType).log.RegDrkSatFitBnd);

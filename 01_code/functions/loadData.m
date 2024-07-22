@@ -127,6 +127,8 @@ Data.Processed.PSAL.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.n
 Data.Processed.FLUO.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
 Data.Processed.PAR.log.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
 Data.Processed.PAR.lin.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
+Data.Processed.IRR490.log.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
+Data.Processed.IRR490.lin.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
 
 % Interpolate
 for iP = 1 : Data.MetaData.nProfs
@@ -142,19 +144,19 @@ for iP = 1 : Data.MetaData.nProfs
     
     % Only proceed with interpolation if profile has any finite data
     if numel(depth_irreg)>1
-        % Pressure
+        % PRESSURE
         pres_irreg = Data.Raw.PRES_ADJUSTED(~(iZ_nan|iZ_dupe),iP);
         Data.Processed.PRES.Reg(:,iP) = interp1(depth_irreg,pres_irreg,defaultPars.depthInterpGrid,'linear',NaN);
 
-        % Temperature
+        % TEMPERATURE
         temp_irreg = Data.Raw.TEMP_ADJUSTED(~(iZ_nan|iZ_dupe),iP);
         Data.Processed.TEMP.Reg(:,iP) = interp1(depth_irreg,temp_irreg,defaultPars.depthInterpGrid,'linear',NaN);
 
-        % Practical salinity
+        % PRACTICAL SALINITY
         psal_irreg = Data.Raw.PSAL_ADJUSTED(~(iZ_nan|iZ_dupe),iP);
         Data.Processed.PSAL.Reg(:,iP) = interp1(depth_irreg,psal_irreg,defaultPars.depthInterpGrid,'linear',NaN);
 
-        % Chl fluorescence
+        % CHL FLUORESCENCE
         if isfield(Data.Raw,'CHLA')
             fluo_irreg = Data.Raw.CHLA(~(iZ_nan|iZ_dupe),iP);
             if strcmp(platform_type, 'sealtag')
@@ -169,26 +171,48 @@ for iP = 1 : Data.MetaData.nProfs
             end
         end
 
-        % LIGHT fluorescence
-        % NB: Linearly interpolates ln(PAR), since light increases exponentially towards the surface
-        if strcmp(platform_type, 'sealtag') && isfield(Data.Raw,'LIGHT') % seal tag PAR field
+        % LIGHT
+        % NB: Light is expected to increase exponentially to the surface and therefore linearly 
+        % 1) Seal tag PAR
+        if strcmp(platform_type, 'sealtag') && isfield(Data.Raw,'LIGHT')
             % Seal tag raw PAR data is by default given in ln(PAR)
             parlog_irreg = Data.Raw.LIGHT(~(iZ_nan|iZ_dupe),iP);
             Data.Processed.PAR.log.Reg(:,iP) = interp1(depth_irreg,parlog_irreg,defaultPars.depthInterpGrid,'linear',NaN);
             % Convert to linear PAR
             Data.Processed.PAR.lin.Reg(:,iP) = exp(Data.Processed.PAR.log.Reg(:,iP));
+        end
 
-        elseif strcmp(platform_type, 'float') && isfield(Data.Raw,'DOWNWELLING_PAR') % float PAR field
-            % BGC Argo PAR data is given in linear PAR, needs to be log-transformed prior to interpolation
-            par_irreg = Data.Raw.DOWNWELLING_PAR(~(iZ_nan|iZ_dupe),iP);
-            par_irreg(par_irreg<=0) = NaN;      % remove negative/0 values before log-transformation
-            parlog_irreg = log(par_irreg);
-            % Only consider depths at which PAR observations are available 
-            % --> Different to seal tag data, BGC variables are not measured at every available depth level
-            i_par_isnan = ~isfinite(parlog_irreg);
-            if numel(find(~i_par_isnan))>1
-                Data.Processed.PAR.log.Reg(:,iP) = interp1(depth_irreg(~i_par_isnan),parlog_irreg(~i_par_isnan),defaultPars.depthInterpGrid,'linear',NaN);
-                Data.Processed.PAR.lin.Reg(:,iP) = exp(Data.Processed.PAR.log.Reg(:,iP));
+        % 2) BGC-Argo light
+        % NB: BGC Argo light data is not log-transformed, needs to be log'ed prior to interpolation
+        if strcmp(platform_type, 'float')
+            % Downwelling PAR
+            if isfield(Data.Raw,'DOWNWELLING_PAR')
+                par_irreg = Data.Raw.DOWNWELLING_PAR(~(iZ_nan|iZ_dupe),iP);
+                par_irreg(par_irreg<=0) = NaN;      % remove negative/0 values before log-transformation
+                parlog_irreg = log(par_irreg);
+                
+                % Only consider depths at which PAR observations are available
+                % NB: Float BGC variables are not measured at every available depth level 
+                i_par_isnan = ~isfinite(parlog_irreg);
+                if numel(find(~i_par_isnan))>1
+                    Data.Processed.PAR.log.Reg(:,iP) = interp1(depth_irreg(~i_par_isnan),parlog_irreg(~i_par_isnan),defaultPars.depthInterpGrid,'linear',NaN);
+                    Data.Processed.PAR.lin.Reg(:,iP) = exp(Data.Processed.PAR.log.Reg(:,iP));
+                end
+            end
+            
+            % BGC-Argo downwelling irradiance at 490 nm
+            if isfield(Data.Raw,'DOWN_IRRADIANCE490')
+                irr490_irreg = Data.Raw.DOWN_IRRADIANCE490(~(iZ_nan|iZ_dupe),iP);
+                irr490_irreg(irr490_irreg<=0) = NaN;      % remove negative/0 values before log-transformation
+                irr490log_irreg = log(irr490_irreg);
+                
+                % Only consider depths at which PAR observations are available
+                % NB: Float BGC variables are not measured at every available depth level 
+                i_par_isnan = ~isfinite(irr490log_irreg);
+                if numel(find(~i_par_isnan))>1
+                    Data.Processed.IRR490.log.Reg(:,iP) = interp1(depth_irreg(~i_par_isnan),irr490log_irreg(~i_par_isnan),defaultPars.depthInterpGrid,'linear',NaN);
+                    Data.Processed.IRR490.lin.Reg(:,iP) = exp(Data.Processed.IRR490.log.Reg(:,iP));
+                end
             end
         end
     end
@@ -219,7 +243,7 @@ ProfileInfo.General = array2table(NaN(Data.MetaData.nProfs, numel(var_names)),'V
 ProfileInfo.General.Profile = (1 : Data.MetaData.nProfs)';
 switch platform_type
     case 'sealtag'
-        ProfileInfo.General.platformID = repmat(Data.MetaData.smru_platform_code,Data.MetaData.nProfs,1);
+        ProfileInfo.General.PlatformID = repmat(Data.MetaData.smru_platform_code,Data.MetaData.nProfs,1);
     case 'float'
         ProfileInfo.General.PlatformID = ncread(fullfile(root.input, platformID),'PLATFORM_NUMBER')';
 end

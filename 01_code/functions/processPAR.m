@@ -1,4 +1,4 @@
-function [Data,ProfileInfo] = processPAR(Data,ProfileInfo,defaultPars)
+function [Data,ProfileInfo] = processPAR(Data,ProfileInfo,defaultPars,dataType)
 % PROCESSPAR
 %
 % INPUT ARGUMENTS
@@ -6,7 +6,12 @@ function [Data,ProfileInfo] = processPAR(Data,ProfileInfo,defaultPars)
 % OUTPUT
 
 %% CMD message: start
-fprintf('Processing <strong>PAR</strong> data...');
+if strcmp(dataType,'PAR')
+    fprintf('Processing <strong>PAR</strong> data...');
+elseif strcmp(dataType,'IRR490')
+    fprintf('Processing <strong>downwelling irradiance at 490nm</strong> data...');
+end
+
 
 %% Create parData info table
 var_names = {...
@@ -27,48 +32,48 @@ var_names = {...
     'attSlopeBound', ...        % attenuation slope between pre-defined upper and lower depth bound
     'predIntChla' ...           % prediction of integrated CHLA from light attenuation slope linear regression
     }';
-ProfileInfo.PAR = array2table(NaN(Data.MetaData.nProfs, numel(var_names)),'VariableNames',var_names);
+ProfileInfo.(dataType) = array2table(NaN(Data.MetaData.nProfs, numel(var_names)),'VariableNames',var_names);
 
 %% Populate initial information
 % Profile #
-ProfileInfo.PAR.Profile = (1 : Data.MetaData.nProfs)';
+ProfileInfo.(dataType).Profile = (1 : Data.MetaData.nProfs)';
 
 % Set profiles with constant PAR values NaN (due to sensor issues)
-Data.Processed.PAR.log.Reg(:,range(Data.Processed.PAR.log.Reg) == 0) = NaN;
-Data.Processed.PAR.lin.Reg(:,range(Data.Processed.PAR.lin.Reg) == 0) = NaN;
+Data.Processed.(dataType).log.Reg(:,range(Data.Processed.(dataType).log.Reg) == 0) = NaN;
+Data.Processed.(dataType).lin.Reg(:,range(Data.Processed.(dataType).lin.Reg) == 0) = NaN;
 
 % Find profiles without usable data (all NaNs)
-ProfileInfo.PAR.noData = all(isnan(Data.Processed.PAR.log.Reg))' | range(Data.Processed.PAR.log.Reg)' == 0;
+ProfileInfo.(dataType).noData = all(isnan(Data.Processed.(dataType).log.Reg))' | range(Data.Processed.(dataType).log.Reg)' == 0;
 
 % Shallowest and deepest available observation
-firstObs = find_ndim(isfinite(Data.Processed.PAR.log.Reg),1,'first')';
-lastObs = find_ndim(isfinite(Data.Processed.PAR.log.Reg),1,'last')';
+firstObs = find_ndim(isfinite(Data.Processed.(dataType).log.Reg),1,'first')';
+lastObs = find_ndim(isfinite(Data.Processed.(dataType).log.Reg),1,'last')';
 
 % subsurface light value (first non-NaN value)
 nonZeroIndices = find(firstObs(:,1) ~= 0);
-ProfileInfo.PAR.surfaceValue(nonZeroIndices,1) = arrayfun(@(x) Data.Processed.PAR.lin.Reg(firstObs(x,1), x), nonZeroIndices);
+ProfileInfo.(dataType).surfaceValue(nonZeroIndices,1) = arrayfun(@(x) Data.Processed.(dataType).lin.Reg(firstObs(x,1), x), nonZeroIndices);
 
 %% Processing: Dark correction, sensor saturation removal, spline fitting
 % Initiate processed data fields
-Data.Processed.PAR.log.RegDrk = NaN(size(Data.Processed.DEPTH));
-Data.Processed.PAR.lin.RegDrk = NaN(size(Data.Processed.DEPTH));
-Data.Processed.PAR.log.RegDrkSat = NaN(size(Data.Processed.DEPTH));
-Data.Processed.PAR.lin.RegDrkSat = NaN(size(Data.Processed.DEPTH));
-Data.Processed.PAR.log.RegDrkSatFitAll = NaN(size(Data.Processed.DEPTH));
-Data.Processed.PAR.lin.RegDrkSatFitAll = NaN(size(Data.Processed.DEPTH));
-Data.Processed.PAR.log.RegDrkSatFitSurf = NaN(size(Data.Processed.DEPTH));
-Data.Processed.PAR.lin.RegDrkSatFitSurf = NaN(size(Data.Processed.DEPTH));
-Data.Processed.PAR.log.RegDrkSatFitSurfSmooth = NaN(size(Data.Processed.DEPTH));
-Data.Processed.PAR.lin.RegDrkSatFitSurfSmooth = NaN(size(Data.Processed.DEPTH));
-Data.Processed.PAR.log.RegDrkSatFitBnd = NaN(size(Data.Processed.DEPTH));
-Data.Processed.PAR.lin.RegDrkSatFitBnd = NaN(size(Data.Processed.DEPTH));
-Data.Processed.PAR.QC = NaN(size(Data.Processed.DEPTH));
-Data.Processed.PAR.Kd.FitAll = NaN(size(Data.Processed.PAR.log.RegDrkSat));
-Data.Processed.PAR.Kd.FitBnd = NaN(size(Data.Processed.DEPTH));
-Data.Processed.CHL_LFM = NaN(size(Data.Processed.PAR.log.RegDrkSat));
+Data.Processed.(dataType).log.RegDrk = NaN(size(Data.Processed.DEPTH));
+Data.Processed.(dataType).lin.RegDrk = NaN(size(Data.Processed.DEPTH));
+Data.Processed.(dataType).log.RegDrkSat = NaN(size(Data.Processed.DEPTH));
+Data.Processed.(dataType).lin.RegDrkSat = NaN(size(Data.Processed.DEPTH));
+Data.Processed.(dataType).log.RegDrkSatFitAll = NaN(size(Data.Processed.DEPTH));
+Data.Processed.(dataType).lin.RegDrkSatFitAll = NaN(size(Data.Processed.DEPTH));
+Data.Processed.(dataType).log.RegDrkSatFitSurf = NaN(size(Data.Processed.DEPTH));
+Data.Processed.(dataType).lin.RegDrkSatFitSurf = NaN(size(Data.Processed.DEPTH));
+Data.Processed.(dataType).log.RegDrkSatFitSurfSmooth = NaN(size(Data.Processed.DEPTH));
+Data.Processed.(dataType).lin.RegDrkSatFitSurfSmooth = NaN(size(Data.Processed.DEPTH));
+Data.Processed.(dataType).log.RegDrkSatFitBnd = NaN(size(Data.Processed.DEPTH));
+Data.Processed.(dataType).lin.RegDrkSatFitBnd = NaN(size(Data.Processed.DEPTH));
+Data.Processed.(dataType).QC = NaN(size(Data.Processed.DEPTH));
+Data.Processed.(dataType).Kd.FitAll = NaN(size(Data.Processed.(dataType).log.RegDrkSat));
+Data.Processed.(dataType).Kd.FitBnd = NaN(size(Data.Processed.DEPTH));
+Data.Processed.CHL_LFM = NaN(size(Data.Processed.(dataType).log.RegDrkSat));
 
 %% Only proceed if there is any usable data
-if ~all(ProfileInfo.PAR.noData)
+if ~all(ProfileInfo.(dataType).noData)
     %% Dark correction
     % Dark values are calculated from a random subsample of deep profiles (>100 m, N = 10 or as defined in
     % defaultPars.PAR.nDarkProfiles) and used to calculate a tag-specific dark value. The randomised subsampling of deep
@@ -81,8 +86,8 @@ if ~all(ProfileInfo.PAR.noData)
     % to be part of the dark signal. When the null-hypothesis can no longer be rejected, z1 is taken to be the upper end of
     % the dark signal. The median of all PAR values between z0 and z1 is the profile specific dark value.
 
-    PAR_lin_RegDrk = Data.Processed.PAR.lin.Reg;
-    PAR_log_RegDrk = Data.Processed.PAR.log.Reg;
+    PAR_lin_RegDrk = Data.Processed.(dataType).lin.Reg;
+    PAR_log_RegDrk = Data.Processed.(dataType).log.Reg;
 
     rng(0,'twister')                                % Reset random number generator algorithm (for reproducibility of the random subsampling)
     deepProfs = find(lastObs > 100)';               % Indicies of all deep profiles (deeper than 100 m)
@@ -165,33 +170,33 @@ if ~all(ProfileInfo.PAR.noData)
     end
 
     % Calculate median of calulated dark values and apply to every profile
-    ProfileInfo.PAR.darkValue(:) = median(median(darkValues,1,'omitnan'),2,'omitnan');
+    ProfileInfo.(dataType).darkValue(:) = median(median(darkValues,1,'omitnan'),2,'omitnan');
 
     % Offset all non-dark PAR values by the dark value
-    PAR_lin_RegDrk = PAR_lin_RegDrk - ProfileInfo.PAR.darkValue(1);
+    PAR_lin_RegDrk = PAR_lin_RegDrk - ProfileInfo.(dataType).darkValue(1);
 
     % Remove negative/0 PAR values and linearly interpolate gaps
     PAR_lin_RegDrk(PAR_lin_RegDrk<=0) = NaN;
     PAR_lin_RegDrk = fillmissing(PAR_lin_RegDrk,'linear',1,'EndValues','none');
 
     % Write to platform_processed structure
-    Data.Processed.PAR.lin.RegDrk = PAR_lin_RegDrk;
-    Data.Processed.PAR.log.RegDrk = log(PAR_lin_RegDrk);
+    Data.Processed.(dataType).lin.RegDrk = PAR_lin_RegDrk;
+    Data.Processed.(dataType).log.RegDrk = log(PAR_lin_RegDrk);
 
     % Update last non-NaN parData table column
-    firstObs = find_ndim(isfinite(Data.Processed.PAR.log.RegDrk),1,'first')';
-    lastObs = find_ndim(isfinite(Data.Processed.PAR.log.RegDrk),1,'last')';
+    firstObs = find_ndim(isfinite(Data.Processed.(dataType).log.RegDrk),1,'first')';
+    lastObs = find_ndim(isfinite(Data.Processed.(dataType).log.RegDrk),1,'last')';
 
     %% Attenuation slope (based on logarithmic PAR values)
     % Slope calculated over non-dark section of PAR profile
     for iP = 1 : Data.MetaData.nProfs
         if firstObs(iP) > 0
             atten_slope = ...
-                (Data.Processed.PAR.log.RegDrk(lastObs(iP),iP) - Data.Processed.PAR.log.RegDrk(firstObs(iP),iP)) /...
+                (Data.Processed.(dataType).log.RegDrk(lastObs(iP),iP) - Data.Processed.(dataType).log.RegDrk(firstObs(iP),iP)) /...
                 (defaultPars.depthInterpGrid(lastObs(iP)) - defaultPars.depthInterpGrid(firstObs(iP)));
 
             % write parData table
-            ProfileInfo.PAR.attSlope(iP)        = atten_slope;	% slope of attenuation (calculated where PAR is non DARK)
+            ProfileInfo.(dataType).attSlope(iP)        = atten_slope;	% slope of attenuation (calculated where PAR is non DARK)
         end
     end
 
@@ -208,8 +213,8 @@ if ~all(ProfileInfo.PAR.noData)
     % 3 - Profile/observations where unexpected changes in light at the surface are suspected to be due to light sensor saturation
     % NaN - Profile without light data (following dark correction)
 
-    ProfileInfo.PAR.PAR_QC = NaN(Data.MetaData.nProfs,1);
-    Data.Processed.PAR.log.RegDrkSat = Data.Processed.PAR.log.RegDrk;
+    ProfileInfo.(dataType).PAR_QC = NaN(Data.MetaData.nProfs,1);
+    Data.Processed.(dataType).log.RegDrkSat = Data.Processed.(dataType).log.RegDrk;
     saturationPoints = NaN(Data.MetaData.nProfs,1);
 
     % Define a threshold PAR value above which observations will be considered for QC
@@ -218,20 +223,20 @@ if ~all(ProfileInfo.PAR.noData)
     % Near-maximum PAR value across all profiles (defined as percentile), considering only PAR values above the defined
     % threshold to not be biased by negligible light values at depth. Used as a reference to determine if constant light
     % signal at the surface is saturated or cloud/ice-shading related.
-    tagHighPAR = prctile(Data.Processed.PAR.log.RegDrk(Data.Processed.PAR.log.RegDrk>=highPAR_thresh),95,[1,2]);
+    tagHighPAR = prctile(Data.Processed.(dataType).log.RegDrk(Data.Processed.(dataType).log.RegDrk>=highPAR_thresh),95,[1,2]);
 
     for iP = 1 : Data.MetaData.nProfs
         % Isolate PAR profile data for QC
-        logPAR = Data.Processed.PAR.log.RegDrkSat(:,iP);
+        logPAR = Data.Processed.(dataType).log.RegDrkSat(:,iP);
         
         if any(isfinite(logPAR))
             % Set QC flags to 0/1 where PAR is above/below the defined threshold
-            Data.Processed.PAR.QC(logPAR<highPAR_thresh,iP) = 0;
-            Data.Processed.PAR.QC(logPAR>=highPAR_thresh,iP) = 1;
+            Data.Processed.(dataType).QC(logPAR<highPAR_thresh,iP) = 0;
+            Data.Processed.(dataType).QC(logPAR>=highPAR_thresh,iP) = 1;
 
             if any(logPAR>=highPAR_thresh)
                 % If any PAR observations are above the threshold, assign profile QC flag 1
-                ProfileInfo.PAR.PAR_QC(iP,1) = 1;
+                ProfileInfo.(dataType).PAR_QC(iP,1) = 1;
                 
                 % Remove observations where PAR is below the threshold (not considered in further QC)
                 logPAR(logPAR<0) = NaN;
@@ -250,8 +255,8 @@ if ~all(ProfileInfo.PAR.noData)
 
                 if ~isempty(flagged)
                     % Assign QC flag 2 to flagged observations and the profile
-                    Data.Processed.PAR.QC(flagged,iP) = 2;
-                    ProfileInfo.PAR.PAR_QC(iP,1) = 2;
+                    Data.Processed.(dataType).QC(flagged,iP) = 2;
+                    ProfileInfo.(dataType).PAR_QC(iP,1) = 2;
 
                     % Proceed to check for potential saturation signal:
                     % Find consecutive flagged observations near the surface. Consecutive flagged observations can be
@@ -276,61 +281,61 @@ if ~all(ProfileInfo.PAR.noData)
                         flagged_shallow_obs = firstObs(iP) : flagged_shallow_obs(end);
                         
                         % Assign QC flag 3 to flagged shallow observations and profile
-                        Data.Processed.PAR.QC(flagged_shallow_obs,iP) = 3;
+                        Data.Processed.(dataType).QC(flagged_shallow_obs,iP) = 3;
                         saturationPoints(iP) = mean(logPAR(flagged_shallow_obs));
-                        ProfileInfo.PAR.PAR_QC(iP,1) = 3;
+                        ProfileInfo.(dataType).PAR_QC(iP,1) = 3;
 
                         % Remove saturated values
-                        Data.Processed.PAR.log.RegDrkSat(flagged_shallow_obs,iP) = NaN;
+                        Data.Processed.(dataType).log.RegDrkSat(flagged_shallow_obs,iP) = NaN;
 
                     end
                 end
             else
                 % If all PAR observations are below the threshold, assign profile QC flag 0 (no further QC performed)
-                ProfileInfo.PAR.PAR_QC(iP,1) = 0;
+                ProfileInfo.(dataType).PAR_QC(iP,1) = 0;
             end
         end
     end
 
     % Save saturation points to profile PAR info table
-    ProfileInfo.PAR.SaturationValue = exp(saturationPoints);
+    ProfileInfo.(dataType).SaturationValue = exp(saturationPoints);
     
     % Write linear PAR data to platform_processed structure
-    Data.Processed.PAR.lin.RegDrkSat = exp(Data.Processed.PAR.log.RegDrkSat);
+    Data.Processed.(dataType).lin.RegDrkSat = exp(Data.Processed.(dataType).log.RegDrkSat);
 
     %% Spline/log fit to observations
-    Data = processPAR_fit(Data,ProfileInfo,defaultPars);
+    Data = processPAR_fit(Data,ProfileInfo,defaultPars,dataType);
 
     %% Final things
     % - New subsurface PAR value based on fitted data
     % - Euphotic depth (1% of the surface PAR depth, after Morel and Berthon, 1989)
-    iSurfVal_fit = find_ndim(isfinite(Data.Processed.PAR.lin.RegDrkSatFitAll),1,'first');
+    iSurfVal_fit = find_ndim(isfinite(Data.Processed.(dataType).lin.RegDrkSatFitAll),1,'first');
     finiteIndices = find(iSurfVal_fit>0);
     for iP = finiteIndices
-        ProfileInfo.PAR.surfaceValueFit(iP,1) = Data.Processed.PAR.lin.RegDrkSatFitAll(iSurfVal_fit(iP),iP);
-        Zeu = -find(Data.Processed.PAR.lin.RegDrkSatFitAll(:,iP) / ProfileInfo.PAR.surfaceValueFit(iP) < 0.01,1,'first');
+        ProfileInfo.(dataType).surfaceValueFit(iP,1) = Data.Processed.(dataType).lin.RegDrkSatFitAll(iSurfVal_fit(iP),iP);
+        Zeu = -find(Data.Processed.(dataType).lin.RegDrkSatFitAll(:,iP) / ProfileInfo.(dataType).surfaceValueFit(iP) < 0.01,1,'first');
         if ~isempty(Zeu)
-            ProfileInfo.PAR.Zeu(iP,1) = Zeu;
+            ProfileInfo.(dataType).Zeu(iP,1) = Zeu;
         end
     end
     % fill missing and smooth Zeu data (window size: ~n profiles per day)
-    ProfileInfo.PAR.ZeuInterp = fillmissing(ProfileInfo.PAR.Zeu,'linear','EndValues','none');
-    ProfileInfo.PAR.ZeuInterp = movmedian(ProfileInfo.PAR.ZeuInterp,ceil(Data.MetaData.nProfs / max(ProfileInfo.General.DeployDay)),'omitnan','Endpoints','shrink');
+    ProfileInfo.(dataType).ZeuInterp = fillmissing(ProfileInfo.(dataType).Zeu,'linear','EndValues','none');
+    ProfileInfo.(dataType).ZeuInterp = movmedian(ProfileInfo.(dataType).ZeuInterp,ceil(Data.MetaData.nProfs / max(ProfileInfo.General.DeployDay)),'omitnan','Endpoints','shrink');
 
     % penetration depth (first optical depth)
-    ProfileInfo.PAR.FirstOD = ProfileInfo.PAR.ZeuInterp / 4.6;
+    ProfileInfo.(dataType).FirstOD = ProfileInfo.(dataType).ZeuInterp / 4.6;
 
     % depth of quenching threshold 15 umol m-2 s-1 (Xing et al. 2018)
-    iZ_quench = find_ndim(Data.Processed.PAR.lin.RegDrkSatFitAll > 15, 1, 'last')';
+    iZ_quench = find_ndim(Data.Processed.(dataType).lin.RegDrkSatFitAll > 15, 1, 'last')';
     iZ_quench(iZ_quench == 0) = NaN;
-    ProfileInfo.PAR.quenchDepth = -iZ_quench;
+    ProfileInfo.(dataType).quenchDepth = -iZ_quench;
 
     % (ML-)mean Kd
-    ProfileInfo.PAR.meanKd = mean(Data.Processed.PAR.Kd.FitAll,1,'omitnan')';
+    ProfileInfo.(dataType).meanKd = mean(Data.Processed.(dataType).Kd.FitAll,1,'omitnan')';
     for iP = 1 : Data.MetaData.nProfs
         iZ_MLD = abs(round(ProfileInfo.General.MLD(iP)));
         if isfinite(iZ_MLD)
-            ProfileInfo.PAR.meanKdML(iP) = mean(Data.Processed.PAR.Kd.FitAll(1:iZ_MLD,iP),1,'omitnan');
+            ProfileInfo.(dataType).meanKdML(iP) = mean(Data.Processed.(dataType).Kd.FitAll(1:iZ_MLD,iP),1,'omitnan');
         end
     end
 end

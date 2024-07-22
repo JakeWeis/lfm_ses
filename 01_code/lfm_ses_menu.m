@@ -9,14 +9,15 @@ root.data.etopo  = fullfile(root.proj, '00_data','etopo');
 root.data.seal   = fullfile(root.proj, '00_data','seal');
 root.data.seaice  = fullfile(root.proj, '00_data','seaice');
 
-% input data directory (TO BE SPECIFIED AS INPUT TO)
-root_input{1}       = '/Volumes/PhData/PD DATA/SUBSET/FLUO_LIGHT';
-root_input{2}       = '/Volumes/PhData/PD DATA/SUBSET/FLUO';
-root_input{3}       = '/Volumes/PhData/PD DATA/BGCArgo/FLUO_LIGHT/Profiles';
+% input data directory
+data_base_dir       = '/Volumes/PhData/PD DATA';
+root_input{1}       = '/SEALTAGS/Prydz/FLUO_LIGHT';
+root_input{2}       = '/SEALTAGS/Prydz/FLUO';
+root_input{3}       = '/BGCARGO/FLUO_LIGHT/Profiles';
 
 for iInput = 3
-    root.input       = root_input{iInput};
-    root.output      = fullfile(root.input, 'OUT');
+    root.input       = fullfile(data_base_dir,root_input{iInput},'RAW');
+    root.output      = fullfile(data_base_dir,root_input{iInput},'PROCESSED');
     if ~isfolder(root.output)
         mkdir(root.output)
     end
@@ -55,8 +56,9 @@ for iInput = 3
         % Load data
         [Data,ProfileInfo] = loadData(root,platformID,bathymetry,defaultPars);
 
-        % Process PAR data
-        [Data,ProfileInfo] = processPAR(Data,ProfileInfo,defaultPars);
+        % Process light data
+        [Data,ProfileInfo] = processPAR(Data,ProfileInfo,defaultPars,'PAR');
+        [Data,ProfileInfo] = processPAR(Data,ProfileInfo,defaultPars,'IRR490');     % downwelling irradiance 490nm, BGC-Argo only
 
         % Process Fluorescence data
         [Data,ProfileInfo] = processFLUO(Data,ProfileInfo,defaultPars);
@@ -66,21 +68,13 @@ for iInput = 3
         save(fullfile(root.output,[platformID(1:end-3),'_PROCESSED.mat']), '-fromstruct', s)
 
     end
-end
 
- %% Load data
-% for iPlatform = 1 : numel(allFiles)
-%     platformID = allFiles(iPlatform).name;
-%     load(fullfile(root.output,[platformID(1:end-3),'_PROCESSED.mat']),'Data');
-% 
-%     if Data.Metadata.NegativeLight.n_obs_adj>0 || Data.Metadata.NegativeLight.n_obs_unadj>0
-%         fprintf('%s, negative values, adj obs: %i (%i/%i profiles), unadj obs: %i  (%i/%i profiles)\n', ...
-%             platformID, ...
-%             Data.Metadata.NegativeLight.n_obs_adj, ...
-%             Data.Metadata.NegativeLight.n_prof_adj, ...
-%             Data.MetaData.nProfs, ...
-%             Data.Metadata.NegativeLight.n_obs_unadj, ...
-%             Data.Metadata.NegativeLight.n_prof_unadj, ...
-%             Data.MetaData.nProfs)
-%     end
-% end
+    %% Load data
+    % for iPlatform = 1 : numel(allFiles)
+    %     platformID = allFiles(iPlatform).name;
+    %     load(fullfile(root.output,[platformID(1:end-3),'_PROCESSED.mat']),'Data');
+    %     if ~isfield(Data.Raw,'DOWN_IRRADIANCE490')
+    %         sprintf('no kd490 (%s)',ProfileInfo.General.PlatformID(1,:))
+    %     end
+    % end
+end
