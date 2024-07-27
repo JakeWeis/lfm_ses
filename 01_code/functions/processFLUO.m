@@ -30,8 +30,8 @@ ProfileInfo.FLUO = array2table(NaN(Data.MetaData.nProfs, numel(var_names)),'Vari
 % Profile #
 ProfileInfo.FLUO.Profile = (1 : Data.MetaData.nProfs)';
 
-% Remove values below pre-defined maximum depth
-Data.Processed.FLUO.Reg(defaultPars.depthInterpGrid < defaultPars.CHL.maxCHLA_depth,:) = NaN;
+% [DISABLED] Remove values below pre-defined maximum depth
+% Data.Processed.FLUO.Reg(defaultPars.depthInterpGrid < defaultPars.CHL.maxCHLA_depth,:) = NaN;
 
 % Set profiles with constant fluorescence values NaN (due to sensor issues)
 Data.Processed.FLUO.Reg(:,range(Data.Processed.FLUO.Reg) == 0) = NaN;
@@ -59,35 +59,64 @@ Data.Processed.FLUO.RegDrkNPQFitBnd = NaN(size(Data.Processed.DEPTH));
 % Only proceed with processing if there is any usable data
 if ~all(ProfileInfo.FLUO.noData)
     %% Dark correction
-    % Dark value: median of 10 deepest fluo values (interpolated to profiles where no dark estimate could be retrieved)
-    darkDepthDelta = 10;
-    fluoDeep = Data.Processed.FLUO.Reg(-defaultPars.CHL.maxCHLA_depth-(darkDepthDelta-1) : -defaultPars.CHL.maxCHLA_depth,:);
-    ProfileInfo.FLUO.darkValue = fillmissing(median(fluoDeep,1,'omitnan'),'nearest')';
+    % % Dark value: median of 10 deepest fluo values (interpolated to profiles where no dark estimate could be retrieved)
+    % darkDepthDelta = 10;
+    % fluoDeep = Data.Processed.FLUO.Reg(-defaultPars.CHL.maxCHLA_depth-(darkDepthDelta-1) : -defaultPars.CHL.maxCHLA_depth,:);
+    % ProfileInfo.FLUO.darkValue = fillmissing(median(fluoDeep,1,'omitnan'),'nearest')';
+    % 
+    % if ~all(isnan(ProfileInfo.FLUO.darkValue))
+    %     % Dark value smoothing
+    %     nDays = 10;   % time window to be used for smoothing (days), start with 10 days and reduce if obs time period is too short
+    %     darkValCorr = movmedian(ProfileInfo.FLUO.darkValue,ceil(Data.MetaData.nProfs/max(ProfileInfo.General.DeployDay)*nDays),'Endpoints','fill');
+    %     darkValCorr = fillmissing(darkValCorr,'nearest');
+    %     while all(isnan(darkValCorr))
+    %         % if dark values are all NaN, the median smoothing window was too big
+    %         % reduce window by 1 day until dark values are retrieved
+    %         nDays = nDays-1;
+    %         darkValCorr = movmedian(ProfileInfo.FLUO.darkValue,ceil(Data.MetaData.nProfs/max(ProfileInfo.General.DeployDay)*nDays),'Endpoints','fill');
+    %         darkValCorr = fillmissing(darkValCorr,'nearest');
+    %     end
+    % 
+    %     % Approximate drift over time by calculating a linear regression through smoothed dark values
+    %     darkValCorrFit = fitlm(datenum(ProfileInfo.General.Date),darkValCorr);
+    %     ProfileInfo.FLUO.darkValCorr = darkValCorrFit.Fitted;
+    % 
+    %     % Remove dark value and set negative values 0
+    %     Data.Processed.FLUO.RegDrk = Data.Processed.FLUO.Reg;
+    %     fluoOffset = repmat(ProfileInfo.FLUO.darkValCorr',size(Data.Processed.FLUO.RegDrk,1),1);
+    %     Data.Processed.FLUO.RegDrk = Data.Processed.FLUO.RegDrk - fluoOffset;
+    %     Data.Processed.FLUO.RegDrk(Data.Processed.FLUO.RegDrk<0) = 0;
+    % end
 
-    if ~all(isnan(ProfileInfo.FLUO.darkValue))
-        % Dark value smoothing
-        nDays = 10;   % time window to be used for smoothing (days), start with 10 days and reduce if obs time period is too short
-        darkValCorr = movmedian(ProfileInfo.FLUO.darkValue,ceil(Data.MetaData.nProfs/max(ProfileInfo.General.DeployDay)*nDays),'Endpoints','fill');
-        darkValCorr = fillmissing(darkValCorr,'nearest');
-        while all(isnan(darkValCorr))
-            % if dark values are all NaN, the median smoothing window was too big
-            % reduce window by 1 day until dark values are retrieved
-            nDays = nDays-1;
-            darkValCorr = movmedian(ProfileInfo.FLUO.darkValue,ceil(Data.MetaData.nProfs/max(ProfileInfo.General.DeployDay)*nDays),'Endpoints','fill');
-            darkValCorr = fillmissing(darkValCorr,'nearest');
-        end
+    %% Updated dark correction (consistent with PAR, random subsamples)
+    % Dark values (median of the 10 deepest observations, or as specified by darkDepthDelta) are determined for a random
+    % subsample of deep profiles (>100 m, N = 10 or as defined in defaultPars.PAR.nDarkProfiles) and used to calculate a
+    % tag-specific dark value. The randomised subsampling of deep profiles is repeated nRep times to yield a more robust
+    % estimate. The tag-specific dark value is then calculated as the median of the median of all individual dark values (per
+    % subsample). NB: The random number generator algorithm is reset within the script to ensure that the results do not
+    % change when reprocessing data.
 
-        % Approximate drift over time by calculating a linear regression through smoothed dark values
-        darkValCorrFit = fitlm(datenum(ProfileInfo.General.Date),darkValCorr);
-        ProfileInfo.FLUO.darkValCorr = darkValCorrFit.Fitted;
+    rng(0,'twister')                                % Reset random number generator algorithm (for reproducibility of the random subsampling)
+    deepProfs = find(lastObs > 200)';               % Indices of all deep profiles (deeper than 100 m)
+    darkDepthDelta = 10;                            % Depth range over which dark depth is calculated (m)
+    nRep = 10;                                      % Number of repetitions of random deep profile subsamples
+    darkValues = NaN(Data.MetaData.nProfs,nRep);    % Dark value matrix
+    for iRep = 1 : nRep
+        % Randomly subsample deep profiles to be used for the dark value calculation (N defined in setDefaults)
+        nSamples = min(defaultPars.PAR.nDarkProfiles,numel(deepProfs)); % N subsamples cannot be less than the number of deep profiles to sample from
+        % iDarkProfiles = datasample(deepProfs,nSamples,'Replace',false); % Indices of subsampled profiles
+        iDarkProfiles = datasample(deepProfs,nSamples,'Replace',false); % Indices of subsampled profiles
 
-        % Remove dark value and set negative values 0
-        Data.Processed.FLUO.RegDrk = Data.Processed.FLUO.Reg;
-        fluoOffset = repmat(ProfileInfo.FLUO.darkValCorr',size(Data.Processed.FLUO.RegDrk,1),1);
-        Data.Processed.FLUO.RegDrk = Data.Processed.FLUO.RegDrk - fluoOffset;
-        Data.Processed.FLUO.RegDrk(Data.Processed.FLUO.RegDrk<0) = 0;
+        darkValues(iDarkProfiles,iRep) = median(Data.Processed.FLUO.Reg(-defaultPars.CHL.maxCHLA_depth-(darkDepthDelta-1) : -defaultPars.CHL.maxCHLA_depth,iDarkProfiles));
     end
 
+    darkValue = median(median(darkValues,1,'omitnan'),2,'omitnan');
+
+    % Remove dark value and set negative values 0, store dark value in ProfileInfo
+    Data.Processed.FLUO.RegDrk = Data.Processed.FLUO.Reg - darkValue;
+    Data.Processed.FLUO.RegDrk(Data.Processed.FLUO.RegDrk<=0) = NaN;
+    Data.Processed.FLUO.RegDrk = fillmissing(Data.Processed.FLUO.RegDrk,'linear',1,'EndValues','none');
+    ProfileInfo.FLUO.darkValue(:) = darkValue;
 
     %% Detect and remove constant part of the FLUO profile at depth
     for iP = 1 : Data.MetaData.nProfs

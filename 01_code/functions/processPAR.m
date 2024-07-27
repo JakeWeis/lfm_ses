@@ -90,7 +90,7 @@ if ~all(ProfileInfo.(dataType).noData)
     PAR_log_RegDrk = Data.Processed.(dataType).log.Reg;
 
     rng(0,'twister')                                % Reset random number generator algorithm (for reproducibility of the random subsampling)
-    deepProfs = find(lastObs > 100)';               % Indicies of all deep profiles (deeper than 100 m)
+    deepProfs = find(lastObs > 100)';               % Indices of all deep profiles (deeper than 100 m)
     nRep = 10;                                      % Number of repetitions of random deep profile subsamples
     darkValues = NaN(Data.MetaData.nProfs,nRep);    % Dark value matrix
     darkDepths = NaN(Data.MetaData.nProfs,nRep);    % Dark depth matrix
