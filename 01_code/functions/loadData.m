@@ -235,6 +235,9 @@ var_names = {...
     'SolarAlt', ...                 % solar altitude value (angle, in dregrees)
     'Daytime', ...                  % true/false: daytime profile
     'MLD', ...                      % MLD [T, S, RHO] (based on Holte and Talley 2009 algorithms)
+    'DynamicHeight', ...            % Dynamic height at 50 dbar relative to 1000 dbar (m)
+    'FrontalZone_DynHeight',...     % Southern Ocean frontal zone based on the dynamic height
+    'FrontalZone_Orsi'              % Southern Ocean frontal zone based on Orsi & Harris (2019)
     }';
 
 ProfileInfo.General = array2table(NaN(Data.MetaData.nProfs, numel(var_names)),'VariableNames',var_names);
@@ -375,7 +378,7 @@ end
 ProfileInfo.General.SeaIceConcAtProf = SeaIceConcAtProf;
 
 
-%% MLD
+%% MLD, dynamic height & SO frontal zone
 MLD_algo = 3; % 1: Temperature threshold, 2: Salinity threshold, 3: Density threshold
 for iP = 1 : Data.MetaData.nProfs
     % MLD
@@ -395,9 +398,59 @@ for iP = 1 : Data.MetaData.nProfs
             % Else use the mean of the T and/or S threshold estimates (whichever yields an MLD <0m)
             ProfileInfo.General.MLD(iP) = mean(mld_estimates(mld_estimates<0));
         end
+    end
 
+    % Dynamic height
+    lon = ProfileInfo.General.Lon(iP);
+    lat = ProfileInfo.General.Lat(iP);
+    asal = gsw_SA_from_SP(psal, pres, lon, lat);
+    ct = gsw_CT_from_t(asal,temp,pres);
+
+    finiteVals = isfinite(pres) & isfinite(temp) & isfinite(psal);
+    pres_finiteObs = pres;
+    pres_finiteObs(~finiteVals) = NaN;
+
+    iZ_50dbar = dsearchn(pres_finiteObs,50);
+    iZ_1000dbar = dsearchn(pres_finiteObs,1000);
+    
+    % Only proceed if the target (50 dbar) and reference pressure (1000 dbar) are close enough to literature values
+    if iZ_50dbar < 100 && iZ_1000dbar > 950
+        g = 9.81;   % Gravitational constant
+        dynHeight = gsw_geo_strf_dyn_height(asal(iZ_50dbar:iZ_1000dbar),ct(iZ_50dbar:iZ_1000dbar),pres(iZ_50dbar:iZ_1000dbar),pres(iZ_1000dbar))/g;
+        ProfileInfo.General.DynamicHeight(iP) = dynHeight(1);
+
+        % SO frontal zones
+        % SAF   --> 0.87 dynamic height
+        % PF    --> 0.62 dynamic height
+        % sACCf --> 0.45 dynamic height
+        % sBdy  --> 0.38 dynamic height
+        if ProfileInfo.General.DynamicHeight(iP) >= 0.87
+            ProfileInfo.General.FrontalZone_DynHeight(iP) = 1;
+        elseif ProfileInfo.General.DynamicHeight(iP) < 0.87 && ProfileInfo.General.DynamicHeight(iP) >= 0.62
+            ProfileInfo.General.FrontalZone_DynHeight(iP) = 2;
+        elseif ProfileInfo.General.DynamicHeight(iP) < 0.62 && ProfileInfo.General.DynamicHeight(iP) >= 0.45
+            ProfileInfo.General.FrontalZone_DynHeight(iP) = 3;
+        elseif ProfileInfo.General.DynamicHeight(iP) < 0.45 && ProfileInfo.General.DynamicHeight(iP) >= 0.38
+            ProfileInfo.General.FrontalZone_DynHeight(iP) = 4;
+        elseif ProfileInfo.General.DynamicHeight(iP) < 0.38
+            ProfileInfo.General.FrontalZone_DynHeight(iP) = 5;
+        else
+            ProfileInfo.General.FrontalZone_DynHeight(iP) = NaN;
+        end
     end
 end
+
+% Determined fronts based on average front and zone locations (Orsi & Harris, 2019)
+[~,zones] = SOFronts;
+ProfileInfo.General.FrontalZone_Orsi(inpolygon(ProfileInfo.General.Lon,ProfileInfo.General.Lat,zones.SAZ.lon,zones.SAZ.lat)) = 1;
+ProfileInfo.General.FrontalZone_Orsi(inpolygon(ProfileInfo.General.Lon,ProfileInfo.General.Lat,zones.PFZ.lon,zones.PFZ.lat)) = 2;
+ProfileInfo.General.FrontalZone_Orsi(inpolygon(ProfileInfo.General.Lon,ProfileInfo.General.Lat,zones.AZ.lon,zones.AZ.lat)) = 3;
+ProfileInfo.General.FrontalZone_Orsi(inpolygon(ProfileInfo.General.Lon,ProfileInfo.General.Lat,zones.SZ.lon,zones.SZ.lat)) = 4;
+ProfileInfo.General.FrontalZone_Orsi(inpolygon(ProfileInfo.General.Lon,ProfileInfo.General.Lat,zones.SPR.lon,zones.SPR.lat)) = 5;
+
+ProfileInfo.General.FrontalZone_DynHeight = categorical(ProfileInfo.General.FrontalZone_DynHeight,1:5,{'SAZ','PFZ','AZ','SZ','SPR'});
+ProfileInfo.General.FrontalZone_Orsi = categorical(ProfileInfo.General.FrontalZone_Orsi,1:5,{'SAZ','PFZ','AZ','SZ','SPR'});
+
 
 %% CMD message: done
 pause(0.1)

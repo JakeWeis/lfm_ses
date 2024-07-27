@@ -173,15 +173,15 @@ if ~all(ProfileInfo.(dataType).noData)
     ProfileInfo.(dataType).darkValue(:) = median(median(darkValues,1,'omitnan'),2,'omitnan');
 
     % Offset all non-dark PAR values by the dark value
-    PAR_lin_RegDrk = PAR_lin_RegDrk - ProfileInfo.(dataType).darkValue(1);
+    PAR_log_RegDrk = PAR_log_RegDrk - log(ProfileInfo.(dataType).darkValue(1));
 
     % Remove negative/0 PAR values and linearly interpolate gaps
-    PAR_lin_RegDrk(PAR_lin_RegDrk<=0) = NaN;
-    PAR_lin_RegDrk = fillmissing(PAR_lin_RegDrk,'linear',1,'EndValues','none');
+    PAR_log_RegDrk(PAR_lin_RegDrk<=0) = NaN;
+    PAR_log_RegDrk = fillmissing(PAR_log_RegDrk,'linear',1,'EndValues','none');
 
     % Write to platform_processed structure
-    Data.Processed.(dataType).lin.RegDrk = PAR_lin_RegDrk;
-    Data.Processed.(dataType).log.RegDrk = log(PAR_lin_RegDrk);
+    Data.Processed.(dataType).log.RegDrk = PAR_log_RegDrk;
+    Data.Processed.(dataType).lin.RegDrk = exp(PAR_log_RegDrk);
 
     % Update last non-NaN parData table column
     firstObs = find_ndim(isfinite(Data.Processed.(dataType).log.RegDrk),1,'first')';
