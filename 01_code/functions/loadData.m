@@ -510,7 +510,7 @@ parse(p,varargin{:});
 opt.AddFronts = p.Results.add_fronts;
 opt.AddZones = p.Results.add_zones;
 
-frontstable = readtable('/Users/jweis/MATLAB-Drive/misc/Analyses/SOFronts/OrsiFronts.csv');
+frontstable = readtable(fullfile(root.proj,'/02_library/OrsiFronts.csv'));
 
 % SO front lat/lon data
 front_name = {'NBdy','STF','SAF','PF','SACCF','SBdy'};
