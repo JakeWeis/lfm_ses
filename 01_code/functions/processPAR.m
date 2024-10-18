@@ -1,9 +1,40 @@
 function [Data,ProfileInfo] = processPAR(Data,ProfileInfo,defaultPars,dataType)
-% PROCESSPAR
+% PROCESSPAR processes radiometric seal tag/BGC-Argo data. Processed data and radiometric profile information are appended to
+% the existing structures "Data" and "ProfileInfo".
 %
+% Radiometric profile information:
+% 'Profile'              profile number
+% 'noData'               no data in profile
+% 'surfaceValue'         subsurface light value (first non NaN value of light)
+% 'surfaceValueFit'      subsurface light value of fitted data
+% 'darkValue'            tag-averaged dark PAR value (median of PAR below dark depth)
+% 'PAR_QC'               PAR QC flag for the full profile (1: good profile, 2: profile contains any bad values)
+% 'SaturationDepth'      depth above which light sensor maxes out
+% 'SaturationValue'      PAR value at which light sensor maxes out
+% 'quenchDepth'          depth of quenching threshold 15 umol m-2 s-1 (Xing et al. 2018)
+% 'Zeu'                  euphotic depth (Morel and Berthon, 1989)
+% 'ZeuInterp'            interpolated/smoothed euphotic depths
+% 'FirstOD'              First optical depth
+% 'meanKd'               mean attenuation coefficient Kd (calculated where LIGHT is non DARK non SAT)
+% 'attSlope'             attenuation slope
+% 'attSlopeBound'        attenuation slope between pre-defined upper and lower depth bound
+% 'predIntChla'          prediction of integrated CHLA from light attenuation slope linear regression
+% 
 % INPUT ARGUMENTS
+% Data - Seal tag/BGC-Argo raw data, processed data and metadata
+%   structure, created in loadData.m
+% ProfileInfo - Profile specific information/metadata (general, PAR, IRR490, FLUO)
+%   structure, created in loadData.m
+% defaultPars - default processing parameters
+%   structure, created in defaultPars.m
+% dataType - Type of radiometric data
+%   string, "PAR" or "IRR490"
 %
 % OUTPUT
+% Data - Seal tag/BGC-Argo raw data, processed data and metadata
+%   structure, processed data stored after each processing step
+% ProfileInfo - Profile specific information/metadata (general, PAR, IRR490, FLUO)
+%   structure, profile info listed in table format
 
 %% CMD message: start
 if strcmp(dataType,'PAR')

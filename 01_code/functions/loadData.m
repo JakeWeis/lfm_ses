@@ -1,9 +1,42 @@
 function [Data,ProfileInfo] = loadData(root,platformID,bathymetry,defaultPars)
-% LOAD DATA loads the seal tag data and metadata.
+% LOADDATA loads raw data and extracts metadata from seal tag or BGC-Argo NetCDF files. Raw data is interpolated onto a
+% uniform 1-m depth grid. General profile information is stored in table format.
+%
+% General profile information:
+% 'Profile'                  profile number
+% 'PlatformID'               seal tag/float ID
+% 'Date'                     profile date
+% 'DeployDay'                deployment day
+% 'Lon'                      profile longitude
+% 'Lat'                      profile latitude
+% 'Distance'                 distance travelled by seal/float between profiles
+% 'CumDistance'              cumulative distance travelled across all profiles
+% 'Processed'                true/false, profile processed (false if no observations available at given profile)
+% 'BathymetryAtProf'         bathymetry at profile location
+% 'SeaIceConcAtProf'         sea ice concentrations at profile location
+% 'TimeOfDay_UTC'            hour of the day (UTC) of the profile
+% 'SolarAlt'                 solar altitude value (angle, in dregrees)
+% 'Daytime'                  true/false: daytime profile
+% 'MLD'                      MLD [T, S, RHO] (based on Holte and Talley 2009 algorithms)
+% 'DynamicHeight'            Dynamic height at 50 dbar relative to 1000 dbar (m)
+% 'FrontalZone_DynHeight'    Southern Ocean frontal zone based on the dynamic height
+% 'FrontalZone_Orsi'         Southern Ocean frontal zone based on Orsi & Harris (2019)
 %
 % INPUT ARGUMENTS
+% root - LFM_SES root directory
+%   structure, defined in lfm_ses_menu.m
+% platformID - Seal tag or BGC-Argo ID
+%   numerical, determined in lfm_ses_menu.m
+% bathymetry - ETOPO 2022 bathymetry dataset
+%   data structure, created in lfm_ses_menu.m
+% defaultPars - default processing parameters
+%   structure, defined in setDefaults.m
 %
 % OUTPUT
+% Data - Seal tag/BGC-Argo raw data, processed data and metadata
+%   structure, processed data stored after each processing step
+% ProfileInfo - Profile specific information/metadata (general, PAR, IRR490, FLUO)
+%   structure, profile info listed in table format
 
 %% CMD message: start
 fprintf('Loading data...');

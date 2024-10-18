@@ -1,4 +1,21 @@
 function Data = processPAR_fit(Data,ProfileInfo,defaultPars,dataType)
+% PROCESSPAR_fit is a subfunction of processPAR.m fitting a functional fit to the processed radiometric data and extending
+% observations to the surface (where observations were removed during previous processing steps due to saturation). Processed
+% data are appended to the existing "Data" structure.
+%
+% INPUT ARGUMENTS
+% Data - Seal tag/BGC-Argo raw data, processed data and metadata
+%   structure, created in loadData.m
+% ProfileInfo - Profile specific information/metadata (general, PAR, IRR490, FLUO)
+%   structure, created in loadData.m
+% defaultPars - default processing parameters
+%   structure, created in defaultPars.m
+% dataType - Type of radiometric data
+%   string, "PAR" or "IRR490"
+%
+% OUTPUT
+% Data - Seal tag/BGC-Argo raw data, processed data and metadata
+%   structure, processed data stored after each processing step
 
 %% Shallowest and deepest available observation
 firstObs = find_ndim(isfinite(Data.Processed.(dataType).log.RegDrkSat),1,'first')';

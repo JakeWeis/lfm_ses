@@ -1,9 +1,36 @@
 function [Data,ProfileInfo] = processFLUO(Data,ProfileInfo,defaultPars)
-% PROCESSPAR
+% PROCESSFLUO processes fluoreometric seal tag/BGC-Argo data. Processed data and fluorometric profile information are
+% appended to the existing structures "Data" and "ProfileInfo".
+%
+% Fluorometric profile information:
+% 'Profile'              profile number
+% 'noData'               no data in profile
+% 'darkDepth'            depth of first value belonging to dark signal
+% 'darkValue'            dark value (median of 190 m-200 m values)
+% 'darkValCorr'          dark value for correction (movmedian + linear fit)
+% 'relativeSD_ML'        relative SD within mixing layer
+% 'NPQDepth'             depth from which NPQ correction is applied (see sesf045 script)
+% 'surfaceVal'           surface fluorescence value
+% 'maxFluoDepth'         depth of fluo max value
+% 'maxFluoValue'         fluo max value
+% 'FirstOD_mean'         mean fluorescence in the first optical depth
+% 'ML_mean'              mean fluorescence in the mixed layer
+% 'MLDbio'               MLDbio (Lacour et al. 2017)
 %
 % INPUT ARGUMENTS
+% Data - Seal tag/BGC-Argo raw data, processed data and metadata
+%   structure, created in loadData.m
+% ProfileInfo - Profile specific information/metadata (general, PAR, IRR490, FLUO)
+%   structure, created in loadData.m
+% defaultPars - default processing parameters
+%   structure, created in defaultPars.m
 %
 % OUTPUT
+% Data - Seal tag/BGC-Argo raw data, processed data and metadata
+%   structure, processed data stored after each processing step
+% ProfileInfo - Profile specific information/metadata (general, PAR, IRR490, FLUO)
+%   structure, profile info listed in table format
+
 
 %% CMD message: start
 fprintf('Processing <strong>fluorescence</strong> data...');
@@ -11,7 +38,7 @@ fprintf('Processing <strong>fluorescence</strong> data...');
 %% Create fluoData info table
 var_names = {...
     'Profile', ...              % profile number
-    'noData',...                % no data in profile
+    'noData', ...               % no data in profile
     'darkDepth', ...            % depth of first value belonging to dark signal
     'darkValue', ...            % dark value (median of 190 m-200 m values)
     'darkValCorr', ...          % dark value for correction (movmedian + linear fit)
@@ -20,8 +47,8 @@ var_names = {...
     'surfaceVal', ...           % surface fluorescence value
     'maxFluoDepth', ...         % depth of fluo max value
     'maxFluoValue', ...         % fluo max value
-    'FirstOD_mean',...          % mean fluorescence in the first optical depth
-    'ML_mean',...               % mean fluorescence in the mixed layer
+    'FirstOD_mean', ...         % mean fluorescence in the first optical depth
+    'ML_mean', ...              % mean fluorescence in the mixed layer
     'MLDbio'...                 % MLDbio (Lacour et al. 2017)
     }';
 ProfileInfo.FLUO = array2table(NaN(Data.MetaData.nProfs, numel(var_names)),'VariableNames',var_names);
@@ -97,7 +124,7 @@ if ~all(ProfileInfo.FLUO.noData)
     % change when reprocessing data.
 
     rng(0,'twister')                                % Reset random number generator algorithm (for reproducibility of the random subsampling)
-    deepProfs = find(lastObs > 200)';               % Indices of all deep profiles (deeper than 100 m)
+    deepProfs = find(lastObs > 100)';               % Indices of all deep profiles (deeper than 100 m)
     darkDepthDelta = 10;                            % Depth range over which dark depth is calculated (m)
     nRep = 10;                                      % Number of repetitions of random deep profile subsamples
     darkValues = NaN(Data.MetaData.nProfs,nRep);    % Dark value matrix
@@ -107,16 +134,20 @@ if ~all(ProfileInfo.FLUO.noData)
         % iDarkProfiles = datasample(deepProfs,nSamples,'Replace',false); % Indices of subsampled profiles
         iDarkProfiles = datasample(deepProfs,nSamples,'Replace',false); % Indices of subsampled profiles
 
-        darkValues(iDarkProfiles,iRep) = median(Data.Processed.FLUO.Reg(-defaultPars.CHL.maxCHLA_depth-(darkDepthDelta-1) : -defaultPars.CHL.maxCHLA_depth,iDarkProfiles));
+        darkValues(iDarkProfiles,iRep) = median(Data.Processed.FLUO.Reg(-defaultPars.CHL.maxCHLA_depth-(darkDepthDelta-1) : -defaultPars.CHL.maxCHLA_depth,iDarkProfiles),'omitnan');
     end
 
     darkValue = median(median(darkValues,1,'omitnan'),2,'omitnan');
 
     % Remove dark value and set negative values 0, store dark value in ProfileInfo
-    Data.Processed.FLUO.RegDrk = Data.Processed.FLUO.Reg - darkValue;
-    Data.Processed.FLUO.RegDrk(Data.Processed.FLUO.RegDrk<=0) = NaN;
-    Data.Processed.FLUO.RegDrk = fillmissing(Data.Processed.FLUO.RegDrk,'linear',1,'EndValues','none');
-    ProfileInfo.FLUO.darkValue(:) = darkValue;
+    if ~isnan(darkValue)
+        Data.Processed.FLUO.RegDrk = Data.Processed.FLUO.Reg - darkValue;
+        Data.Processed.FLUO.RegDrk(Data.Processed.FLUO.RegDrk<=0) = NaN;
+        Data.Processed.FLUO.RegDrk = fillmissing(Data.Processed.FLUO.RegDrk,'linear',1,'EndValues','none');
+        ProfileInfo.FLUO.darkValue(:) = darkValue;
+    else
+        Data.Processed.FLUO.RegDrk = Data.Processed.FLUO.Reg;
+    end
 
     %% Detect and remove constant part of the FLUO profile at depth
     for iP = 1 : Data.MetaData.nProfs
