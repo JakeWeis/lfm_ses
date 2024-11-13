@@ -1,5 +1,5 @@
-function [Data,ProfileInfo] = processPAR(Data,ProfileInfo,defaultPars,dataType)
-% PROCESSPAR processes radiometric seal tag/BGC-Argo data. Processed data and radiometric profile information are appended to
+function [Data,ProfileInfo] = processRadiometry(Data,ProfileInfo,defaultPars,dataType)
+% PROCESSRADIOMETRY processes radiometric seal tag/BGC-Argo data. Processed data and radiometric profile information are appended to
 % the existing structures "Data" and "ProfileInfo".
 %
 % Radiometric profile information:

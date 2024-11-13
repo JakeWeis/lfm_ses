@@ -1,5 +1,5 @@
-function [Data,ProfileInfo] = processFLUO(Data,ProfileInfo,defaultPars)
-% PROCESSFLUO processes fluoreometric seal tag/BGC-Argo data. Processed data and fluorometric profile information are
+function [Data,ProfileInfo] = processFluorometry(Data,ProfileInfo,defaultPars)
+% PROCESSFLUOROMETRY processes fluoreometric seal tag/BGC-Argo data. Processed data and fluorometric profile information are
 % appended to the existing structures "Data" and "ProfileInfo".
 %
 % Fluorometric profile information:

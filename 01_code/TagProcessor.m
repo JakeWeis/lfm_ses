@@ -1,4 +1,4 @@
-%% lfm_ses_menu
+%% TagProcessor
 % Main script used to execute the seal tag and BGC-Argo data processing. This script loops through NetCDF files in the
 % specified seal tag/BGC-Argo data directories (multiple directories can be specified and looped through if datasets are
 % stored in more than one folder) and applies a number of processing and correction steps ot the data. Processed data are

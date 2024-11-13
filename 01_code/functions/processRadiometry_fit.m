@@ -1,5 +1,5 @@
-function Data = processPAR_fit(Data,ProfileInfo,defaultPars,dataType)
-% PROCESSPAR_fit is a subfunction of processPAR.m fitting a functional fit to the processed radiometric data and extending
+function Data = processRadiometry_fit(Data,ProfileInfo,defaultPars,dataType)
+% PROCESSRADIOMETRY_fit is a subfunction of processPAR.m fitting a functional fit to the processed radiometric data and extending
 % observations to the surface (where observations were removed during previous processing steps due to saturation). Processed
 % data are appended to the existing "Data" structure.
 %
