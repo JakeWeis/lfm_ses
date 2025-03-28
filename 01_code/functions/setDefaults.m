@@ -35,6 +35,9 @@ defaultPars.bathyMinModelThreshold = -1500; % (meters)
 % when no bathymetry data available (ex. when no loc)
 defaultPars.minProfDepthOpenOcean = -500; % (meters)
 
+% Near surface temperature threshold below which profile is assumed to be covered by sea ice.
+defaultPars.SI_T_threshold = -1.78;
+
 %% Fluorometry
 defaultPars.CHL.maxCHLA_depth = -200;       % define depth at which to consider dark signal (CHLA "absolute zero")
 defaultPars.CHL.maxCHLA_depth = -abs(defaultPars.CHL.maxCHLA_depth); % Ensure that depth is negative

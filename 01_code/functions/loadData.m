@@ -1,4 +1,4 @@
-function [Data,ProfileInfo] = loadData(root,platformID,bathymetry,defaultPars)
+function [Data,ProfileInfo] = loadData(root,platformID,defaultPars)
 % LOADDATA loads raw data and extracts metadata from seal tag or BGC-Argo NetCDF files. Raw data is interpolated onto a
 % uniform 1-m depth grid. General profile information is stored in table format.
 %
@@ -27,8 +27,6 @@ function [Data,ProfileInfo] = loadData(root,platformID,bathymetry,defaultPars)
 %   structure, defined in lfm_ses_menu.m
 % platformID - Seal tag or BGC-Argo ID
 %   numerical, determined in lfm_ses_menu.m
-% bathymetry - ETOPO 2022 bathymetry dataset
-%   data structure, created in lfm_ses_menu.m
 % defaultPars - default processing parameters
 %   structure, defined in setDefaults.m
 %
@@ -106,27 +104,6 @@ end
 Data.MetaData.nProfs = size(Data.Raw.PRES,2);
 Data.MetaData.nDepth = size(Data.Raw.PRES,1);
 
-% Check resolution of tag data
-if ~isempty(regexp(platformID,'lr[1-9]','once'))
-    % Low res: If the file name contains "lr1/lr2/..."
-    Data.MetaData.depth_res = 'lr';
-elseif ~isempty(regexp(platformID,'hr[1-9]','once'))
-    % High res: If the file name contains "hr1/hr2/..."
-    Data.MetaData.depth_res = 'hr';
-elseif ~isempty(regexp(platformID,'fr[1-9]','once'))
-    % Full Res: If the file name contains "fr1/fr2/..."
-    Data.MetaData.depth_res = 'fr';
-else
-    % If the resolution is not specified in the file name.
-    if Data.MetaData.nDepth < numel(defaultPars.depthInterpGrid)
-        % Low res: if n depth levels < n depth levels of the specified depth interpolation vector
-        Data.MetaData.depth_res = 'lr';
-    elseif Data.MetaData.nDepth == numel(defaultPars.depthInterpGrid)
-        % if n depth levels = n depth levels of the specified depth interpolation vector
-        Data.MetaData.depth_res = 'hr';
-    end
-end
-
 % lat/lon min/max
 Data.MetaData.geospatial_lat_max = max(Data.Raw.LATITUDE);
 Data.MetaData.geospatial_lat_min = min(Data.Raw.LATITUDE);
@@ -157,11 +134,21 @@ Data.Processed.DEPTH = repmat(defaultPars.depthInterpGrid,1,Data.MetaData.nProfs
 Data.Processed.PRES.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
 Data.Processed.TEMP.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
 Data.Processed.PSAL.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
-Data.Processed.FLUO.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
-Data.Processed.PAR.log.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
-Data.Processed.PAR.lin.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
-Data.Processed.IRR490.log.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
-Data.Processed.IRR490.lin.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
+if isfield(Data.Raw,'CHLA')
+    Data.Processed.FLUO.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
+end
+if isfield(Data.Raw,'LIGHT')
+    Data.Processed.LIGHT.log.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
+    Data.Processed.LIGHT.lin.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
+end
+if isfield(Data.Raw,'DOWNWELLING_PAR')
+    Data.Processed.DOWNWELLING_PAR.log.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
+    Data.Processed.DOWNWELLING_PAR.lin.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
+end
+if isfield(Data.Raw,'DOWN_IRRADIANCE490')
+    Data.Processed.DOWN_IRRADIANCE490.log.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
+    Data.Processed.DOWN_IRRADIANCE490.lin.Reg = NaN(numel(defaultPars.depthInterpGrid),Data.MetaData.nProfs);
+end
 
 % Interpolate
 for iP = 1 : Data.MetaData.nProfs
@@ -204,19 +191,19 @@ for iP = 1 : Data.MetaData.nProfs
             end
         end
 
-        % LIGHT
-        % NB: Light is expected to increase exponentially to the surface and therefore linearly 
-        % 1) Seal tag PAR
+        % LIGHT/PAR
+        % (1) Seal tag (light)
+        % NB: log-transformed, linear interpolation = exponential decrease to depth
         if strcmp(platform_type, 'sealtag') && isfield(Data.Raw,'LIGHT')
-            % Seal tag raw PAR data is by default given in ln(PAR)
+            % Seal tag light data is ln(light)
             parlog_irreg = Data.Raw.LIGHT(~(iZ_nan|iZ_dupe),iP);
-            Data.Processed.PAR.log.Reg(:,iP) = interp1(depth_irreg,parlog_irreg,defaultPars.depthInterpGrid,'linear',NaN);
-            % Convert to linear PAR
-            Data.Processed.PAR.lin.Reg(:,iP) = exp(Data.Processed.PAR.log.Reg(:,iP));
+            Data.Processed.LIGHT.log.Reg(:,iP) = interp1(depth_irreg,parlog_irreg,defaultPars.depthInterpGrid,'linear',NaN);
+            % Reverse log-transformation
+            Data.Processed.LIGHT.lin.Reg(:,iP) = exp(Data.Processed.LIGHT.log.Reg(:,iP));
         end
 
-        % 2) BGC-Argo light
-        % NB: BGC Argo light data is not log-transformed, needs to be log'ed prior to interpolation
+        % (2): BGC Argo
+        % NB: needs to be log-transformed prior to linear interpolation
         if strcmp(platform_type, 'float')
             % Downwelling PAR
             if isfield(Data.Raw,'DOWNWELLING_PAR')
@@ -228,8 +215,8 @@ for iP = 1 : Data.MetaData.nProfs
                 % NB: Float BGC variables are not measured at every available depth level 
                 i_par_isnan = ~isfinite(parlog_irreg);
                 if numel(find(~i_par_isnan))>1
-                    Data.Processed.PAR.log.Reg(:,iP) = interp1(depth_irreg(~i_par_isnan),parlog_irreg(~i_par_isnan),defaultPars.depthInterpGrid,'linear',NaN);
-                    Data.Processed.PAR.lin.Reg(:,iP) = exp(Data.Processed.PAR.log.Reg(:,iP));
+                    Data.Processed.DOWNWELLING_PAR.log.Reg(:,iP) = interp1(depth_irreg(~i_par_isnan),parlog_irreg(~i_par_isnan),defaultPars.depthInterpGrid,'linear',NaN);
+                    Data.Processed.DOWNWELLING_PAR.lin.Reg(:,iP) = exp(Data.Processed.DOWNWELLING_PAR.log.Reg(:,iP));
                 end
             end
             
@@ -243,8 +230,8 @@ for iP = 1 : Data.MetaData.nProfs
                 % NB: Float BGC variables are not measured at every available depth level 
                 i_par_isnan = ~isfinite(irr490log_irreg);
                 if numel(find(~i_par_isnan))>1
-                    Data.Processed.IRR490.log.Reg(:,iP) = interp1(depth_irreg(~i_par_isnan),irr490log_irreg(~i_par_isnan),defaultPars.depthInterpGrid,'linear',NaN);
-                    Data.Processed.IRR490.lin.Reg(:,iP) = exp(Data.Processed.IRR490.log.Reg(:,iP));
+                    Data.Processed.DOWN_IRRADIANCE490.log.Reg(:,iP) = interp1(depth_irreg(~i_par_isnan),irr490log_irreg(~i_par_isnan),defaultPars.depthInterpGrid,'linear',NaN);
+                    Data.Processed.DOWN_IRRADIANCE490.lin.Reg(:,iP) = exp(Data.Processed.DOWN_IRRADIANCE490.log.Reg(:,iP));
                 end
             end
         end
@@ -262,8 +249,10 @@ var_names = {...
     'Distance', ...                 % distance travelled by seal between profiles
     'CumDistance', ...              % cumulative distance travelled by seal across all profiles
     'Processed', ...                % true/false: profile processed
-    'BathymetryAtProf', ...         % bathymetry at profile location
-    'SeaIceConcAtProf', ...         % sea ice concentrations at profile location
+    'Bathymetry_BEDMAP', ...        % bathymetry from BEDMAP2
+    'Bathymetry_ETOPO', ...         % bathymetry from ETOPO 2022 (0.5˚/30s res.)
+    'SeaIceConc', ...               % sea ice concentrations at profile location
+    'SeaIceCovered', ...            % true/false if profile was potentialy ice covered
     'TimeOfDay_UTC', ...            % hour of the day (UTC) of the profile
     'SolarAlt', ...                 % solar altitude value (angle, in dregrees)
     'Daytime', ...                  % true/false: daytime profile
@@ -327,7 +316,7 @@ ProfileInfo.General.Distance = distance_km(:,2);
 ProfileInfo.General.CumDistance = distance_km(:,1);
 
 %% Solar altitude
-dateNUM = datenum(dateYMD);
+dateNUM = convertTo(dateYMD,'datenum');
 for iP = 1 : Data.MetaData.nProfs
         % compute solar angle and solar altitude (even for all NaN profiles)   
         % solar angle
@@ -346,70 +335,55 @@ end
 ProfileInfo.General.Daytime = true(Data.MetaData.nProfs,1);
 ProfileInfo.General.Daytime(ProfileInfo.General.SolarAlt <= defaultPars.PAR.SolarAlt_DayTime) = false;
 
-%% Get bathymetry data along seal path
-% Extract bathymetry subset around the seal track's lat/lon limits from ETOPO dataset
-i_latmin_in_bathy = dsearchn(bathymetry.lat',floor(Data.MetaData.geospatial_lat_min));
-i_latmax_in_bathy = dsearchn(bathymetry.lat',ceil(Data.MetaData.geospatial_lat_max));
-i_lonmin_in_bathy = dsearchn(bathymetry.lon',floor(convlon(Data.MetaData.geospatial_lon_min,'signed')));
-i_lonmax_in_bathy = dsearchn(bathymetry.lon',ceil(convlon(Data.MetaData.geospatial_lon_max,'signed')));
+%% Get bathymetry data along seal path from ETOPO 2022 and BEDMAP2
+missingBathyFiles = (...
+    ~exist(fullfile(root.data.etopo,'ETOPO_2022_v1_30s_N90W180_bed.nc'),"file") &&...
+    ~exist(fullfile(root.data.etopo,'ETOPO_2022_v1_0s_N90W180_bed.nc'),"file")) ||...
+    ~exist(fullfile(root.data.bedmap,'bedmap2_bed.flt'),"file") ||...
+    ~exist(fullfile(root.data.bedmap,'bedmap2_grounded_bed_uncertainty.flt'),"file");
 
-if Data.MetaData.geospatial_lon_max - Data.MetaData.geospatial_lon_min < 180
-    bathy_subset = bathymetry.data(i_latmin_in_bathy:i_latmax_in_bathy, i_lonmin_in_bathy:i_lonmax_in_bathy);
-    bathy_lon = bathymetry.lon(i_lonmin_in_bathy : i_lonmax_in_bathy);
-    bathy_lat = bathymetry.lat(i_latmin_in_bathy : i_latmax_in_bathy);
-else
-    % If the lon limits cross 180˚ E/W, the bathymetry subset needs to be pieced together
-    bathy_E = bathymetry.data(i_latmin_in_bathy:i_latmax_in_bathy, i_lonmax_in_bathy:bathymetry.ref.RasterSize(2));
-    bathy_W = bathymetry.data(i_latmin_in_bathy:i_latmax_in_bathy, 1:i_lonmin_in_bathy);
-    bathy_subset = [bathy_E,bathy_W];
-    bathy_lon_E = bathymetry.lon(i_lonmax_in_bathy:bathymetry.ref.RasterSize(2));
-    bathy_lon_W = bathymetry.data(1:i_lonmin_in_bathy);
-    bathy_lon = [bathy_lon_E,bathy_lon_W];
-    bathy_lat = bathymetry.lat(i_latmin_in_bathy : i_latmax_in_bathy);
-end
-
-% Get bathymetry depth at each profile
-% Find corresponding seal lat/lon indices in bathymetry subgrid
-i_lat_in_bathy = dsearchn(bathy_lat',Data.Raw.LATITUDE);
-i_lat_in_bathy(~isfinite(Data.Raw.LATITUDE)) = NaN;
-i_lon_in_bathy = dsearchn(bathy_lon',Data.Raw.LONGITUDE);
-i_lon_in_bathy(~isfinite(Data.Raw.LONGITUDE)) = NaN;
-ProfileInfo.General.BathymetryAtProf = NaN(Data.MetaData.nProfs,1);
-for iP = 1 : Data.MetaData.nProfs
-    if isfinite(i_lat_in_bathy(iP)) && isfinite(i_lon_in_bathy(iP))
-        ProfileInfo.General.BathymetryAtProf(iP) = bathy_subset(i_lat_in_bathy(iP),i_lon_in_bathy(iP));
-    end
+if ~missingBathyFiles
+    [ProfileInfo.General.Bathymetry_ETOPO,ProfileInfo.General.Bathymetry_BEDMAP] = ...
+        ll2bathy(ProfileInfo.General.Lat,ProfileInfo.General.Lon,root);
 end
 
 %% Get sea ice concentration along seal path
-% Load sea ice spatial grid and projection (product: Bremen University ASI-AMSR2 6km)
-x = ncread(fullfile(root.data.seaice,'asi-AMSR2-s6250-20210601-v5.4.nc'),'x');
-y = ncread(fullfile(root.data.seaice,'asi-AMSR2-s6250-20210601-v5.4.nc'),'y');
-proj = projcrs(3412,"Authority","EPSG");
-% [X,Y] = meshgrid(x,y);
-% [SIC_lat,SIC_lon] = projinv(proj,X,Y);
+missingSICFiles = isempty(dirPaths(fullfile(root.data.seaice,'*.nc')));
+if ~missingSICFiles
+    allFiles = dirPaths([root.data.seaice,filesep,'*.nc']);
+    % Load sea ice spatial grid and projection (product: Bremen University ASI-AMSR2 6km)
+    x = ncread(allFiles(1).path,'x');
+    y = ncread(allFiles(1).path,'y');
+    proj = projcrs(3412,"Authority","EPSG");
+    % [X,Y] = meshgrid(x,y);
+    % [SIC_lat,SIC_lon] = projinv(proj,X,Y);
 
-% Convert profile latitudes and longitudes to x-y coordinates of the sea ice data and find nearest grid point
-[x_prof,y_prof] = projfwd(proj,ProfileInfo.General.Lat,ProfileInfo.General.Lon);
-i_x_prof = dsearchn(x,x_prof);
-i_y_prof = dsearchn(y,y_prof);
-% Convert profile date to YYYYMMDD format to find matching sea ice concentration file
-profDates = convertTo(ProfileInfo.General.Date,'YYYYMMDD');
+    % Convert profile latitudes and longitudes to x-y coordinates of the sea ice data and find nearest grid point
+    [x_prof,y_prof] = projfwd(proj,ProfileInfo.General.Lat,ProfileInfo.General.Lon);
+    i_x_prof = dsearchn(x,x_prof);
+    i_y_prof = dsearchn(y,y_prof);
+    % Convert profile date to YYYYMMDD format to find matching sea ice concentration file
+    profDates = convertTo(ProfileInfo.General.Date,'YYYYMMDD');
 
-% Extract sea ice concentration for each profile at given grid point and day
-root_seaice = root.data.seaice;
-SeaIceConcAtProf = ProfileInfo.General.SeaIceConcAtProf;
-for iP = 1 : numel(profDates)
-    SIC_filepath = fullfile(root_seaice,sprintf('asi-AMSR2-s6250-%i-v5.4.nc',profDates(iP)));
-    
-    if exist(SIC_filepath,'file')
-        SIC = ncread(SIC_filepath,'z');
-        SeaIceConcAtProf(iP) = SIC(i_x_prof(iP),i_y_prof(iP));
+    % Extract sea ice concentration for each profile at given grid point and day
+    root_seaice = root.data.seaice;
+    SeaIceConcAtProf = ProfileInfo.General.SeaIceConc;
+    for iP = 1 : numel(profDates)
+        SIC_filepath = fullfile(root_seaice,sprintf('asi-AMSR2-s6250-%i-v5.4.nc',profDates(iP)));
+
+        if exist(SIC_filepath,'file')
+            SIC = ncread(SIC_filepath,'z');
+            SeaIceConcAtProf(iP) = SIC(i_x_prof(iP),i_y_prof(iP));
+        end
     end
+
+    ProfileInfo.General.SeaIceConc = SeaIceConcAtProf;
 end
 
-ProfileInfo.General.SeaIceConcAtProf = SeaIceConcAtProf;
-
+%% Sea ice detection
+% Following Riser, S. C., Swift, D., and Drucker, R., 2018 (https://doi.org/10.1002/2017JC013419)
+% The ice-sensing algorithm simply compares the median temperature between ∼ 50 and 20 m during ascent to a threshold temperature of −1.78 ∘C.
+ProfileInfo.General.SeaIceCovered = median(Data.Processed.TEMP.Reg(2:50,:))' <= defaultPars.SI_T_threshold;
 
 %% MLD, dynamic height & SO frontal zone
 MLD_algo = 3; % 1: Temperature threshold, 2: Salinity threshold, 3: Density threshold
@@ -491,6 +465,85 @@ fprintf('\b\b \x2713\n')
 
 
 %% Custom functions
+function [B_etopo,B_bedmap,B_unc_bedmap] = ll2bathy(lat,lon,root)
+% LLBATHY extracts the bathymetry depth at given coordinates.
+%
+% Input: lat and lon coordinates
+% 
+% Optional: 
+% m_ll2bathy(lat, lon, XDATA), plot bathymetric data against given XDATA (e.g., date, lat, lon). Must be the same length of
+% lat/lon data).
+%
+% Output:
+% B_bedmap - bathymetry based on BEDMAP2 (NaN outside polarstereographic grid limits)
+% B_etopo - bathymetry based on ETOPO 2022
+
+% Reshape lat lon to be column vectors
+assert(isvector(lat)&isvector(lon),'Lat and lon must be vectors.')
+lat = reshape(lat,numel(lat),1);
+lon = reshape(lon,numel(lon),1);
+
+%% BEDMAP2 BATHYMETRY
+% Convert query lat/lon coordinates to polar steroegraphic x/y coordinates
+x_query = ones(numel(lat),1)*3333500+1;
+y_query = ones(numel(lat),1)*3333500+1;
+for iL = 1 : numel(lat)
+    if lat(iL)<0
+        % ll2ps throws an error if the latitude is in the northern hemisphere.
+        [x_query(iL),y_query(iL)] = ll2ps(lat(iL),lon(iL));
+    end
+end
+
+% Polarstereographic grid
+x_bedmap = linspace(-3333500,3333500,6667)';
+y_bedmap = linspace(-3333500,3333500,6667)';
+
+% Open binary bathymetry and uncertainty files (.flt)
+fid_1 = fopen(fullfile(root.data.bedmap,'bedmap2_bed.flt'), 'r', 'l');
+fid_2 = fopen(fullfile(root.data.bedmap,'bedmap2_grounded_bed_uncertainty.flt'), 'r', 'l');
+
+% row/column indices of the query points (x/y PS-grid points calculated from lat/lon coordinates) 
+% NB: The bathymetry grid in the .flt file is rotated by 90 degrees (CW) relative to the polar stereographic grid. Therefore, finding the
+% correct point in the file requires going "backwards" along the columns. This is why the column index is subtracted from the
+% total number of columns (6667). The row index does not change with the rotation.
+i_row = dsearchn(x_bedmap,x_query);
+i_col = 6667-dsearchn(y_bedmap,y_query)+1;
+
+% Offset required to get to the query point in the file (moving along columns).
+offset = (i_col - 1) * 6667 + (i_row - 1);
+
+% Read bathymetry and uncertainty values from files
+B_bedmap = NaN(numel(i_row),1);
+B_unc_bedmap = NaN(numel(i_row),1);
+for iL = 1 : numel(i_row)
+    if (x_query(iL)>=-3333500 && x_query(iL)<=3333500) && (y_query(iL)>=-3333500 && y_query(iL)<=3333500)
+        fseek(fid_1,offset(iL)*4,'bof');
+        B_bedmap(iL) = fread(fid_1, [1 1], 'float32');
+        fseek(fid_2,offset(iL)*4,'bof');
+        B_unc_bedmap(iL) = fread(fid_2, [1 1], 'float32');
+    else
+        B_bedmap(iL) = NaN;
+        B_unc_bedmap(iL) = NaN;
+    end
+end
+fclose(fid_1);
+fclose(fid_2);
+
+%% ETOPO 2022 BATHYMETRY
+
+% Extract data from netCDF file at specified coordinates
+lat_etopo = ncread(fullfile(root.data.etopo,'ETOPO_2022_v1_30s_N90W180_bed.nc'),'lat');
+lon_etopo = ncread(fullfile(root.data.etopo,'ETOPO_2022_v1_30s_N90W180_bed.nc'),'lon');
+i_lat = dsearchn(lat_etopo,lat);
+i_lon = dsearchn(lon_etopo,lon);
+
+B_etopo = NaN(numel(i_lat),1);
+for iL = 1 : numel(i_lat)
+    B_etopo(iL) = ncread(fullfile(root.data.etopo,'ETOPO_2022_v1_30s_N90W180_bed.nc'),'z',[i_lon(iL),i_lat(iL)],[1 1]);
+end
+
+end
+
 function [Fronts,Zones] = SOFronts(varargin)
 % Extract Orsi, AH., Harris, U. (2019) Southern Ocean front coordinates. Coordinates are centered around the 0˚ meridian.
 %

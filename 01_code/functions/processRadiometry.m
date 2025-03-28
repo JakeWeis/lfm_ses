@@ -28,7 +28,7 @@ function [Data,ProfileInfo] = processRadiometry(Data,ProfileInfo,defaultPars,dat
 % defaultPars - default processing parameters
 %   structure, created in defaultPars.m
 % dataType - Type of radiometric data
-%   string, "PAR" or "IRR490"
+%   string, "LIGHT" (for seal tags), "PAR" or "IRR490" (for floats)
 %
 % OUTPUT
 % Data - Seal tag/BGC-Argo raw data, processed data and metadata
@@ -37,10 +37,13 @@ function [Data,ProfileInfo] = processRadiometry(Data,ProfileInfo,defaultPars,dat
 %   structure, profile info listed in table format
 
 %% CMD message: start
-if strcmp(dataType,'PAR')
-    fprintf('Processing <strong>PAR</strong> data...');
-elseif strcmp(dataType,'IRR490')
-    fprintf('Processing <strong>downwelling irradiance at 490nm</strong> data...');
+switch dataType
+    case 'LIGHT'
+        fprintf('Processing <strong>LIGHT</strong> data...');
+    case 'PAR'
+        fprintf('Processing <strong>PAR</strong> data...');
+    case 'IRR490'
+        fprintf('Processing <strong>downwelling irradiance at 490nm</strong> data...');
 end
 
 
@@ -51,7 +54,7 @@ var_names = {...
     'surfaceValue', ...         % subsurface light value (first non NaN value of light)
     'surfaceValueFit', ...      % subsurface light value of fitted data
     'darkValue', ...            % tag-averaged dark PAR value (median of PAR below dark depth)
-    'PAR_QC', ...               % PAR QC flag for the full profile (1: good profile, 2: profile contains any bad values)
+    'profileQC', ...               % Profile QC flag for the full profile (1: good profile, 2: profile contains any bad values)
     'SaturationDepth', ...      % depth above which light sensor maxes out
     'SaturationValue', ...      % PAR value at which light sensor maxes out
     'quenchDepth', ...          % depth of quenching threshold 15 umol m-2 s-1 (Xing et al. 2018)
@@ -244,7 +247,7 @@ if ~all(ProfileInfo.(dataType).noData)
     % 3 - Profile/observations where unexpected changes in light at the surface are suspected to be due to light sensor saturation
     % NaN - Profile without light data (following dark correction)
 
-    ProfileInfo.(dataType).PAR_QC = NaN(Data.MetaData.nProfs,1);
+    ProfileInfo.(dataType).profileQC = NaN(Data.MetaData.nProfs,1);
     Data.Processed.(dataType).log.RegDrkSat = Data.Processed.(dataType).log.RegDrk;
     saturationPoints = NaN(Data.MetaData.nProfs,1);
 
@@ -267,7 +270,7 @@ if ~all(ProfileInfo.(dataType).noData)
 
             if any(logPAR>=highPAR_thresh)
                 % If any PAR observations are above the threshold, assign profile QC flag 1
-                ProfileInfo.(dataType).PAR_QC(iP,1) = 1;
+                ProfileInfo.(dataType).profileQC(iP,1) = 1;
                 
                 % Remove observations where PAR is below the threshold (not considered in further QC)
                 logPAR(logPAR<0) = NaN;
@@ -287,7 +290,7 @@ if ~all(ProfileInfo.(dataType).noData)
                 if ~isempty(flagged)
                     % Assign QC flag 2 to flagged observations and the profile
                     Data.Processed.(dataType).QC(flagged,iP) = 2;
-                    ProfileInfo.(dataType).PAR_QC(iP,1) = 2;
+                    ProfileInfo.(dataType).profileQC(iP,1) = 2;
 
                     % Proceed to check for potential saturation signal:
                     % Find consecutive flagged observations near the surface. Consecutive flagged observations can be
@@ -299,12 +302,14 @@ if ~all(ProfileInfo.(dataType).noData)
                     % (2) they cover at least 3 observations
                     % (3) their mean value is within >98% of the maximum light value measured across all profiles
                     % (4) their differential is less than or equal to 1 (no decline in PAR)
+                    % (5) the profile has not been flagged as being potentially sea ice covered
                     %     --> NB: flagged obs are by definition (near-)constant
                     isSaturated = ...
                         flagged_shallow_obs(1) <= firstObs(iP)+3 & ...
                         numel(flagged_shallow_obs) >= 3 & ...
                         median(logPAR(flagged_shallow_obs)) >= tagHighPAR & ...
-                        median(diff(logPAR(flagged_shallow_obs))) - mad(diff(logPAR(flagged_shallow_obs)),1) <= 0;
+                        median(diff(logPAR(flagged_shallow_obs))) - mad(diff(logPAR(flagged_shallow_obs)),1) <= 0 & ...
+                        ~ProfileInfo.General.SeaIceCovered(iP);
 
                     % Saturation correction is only applied to seal tag data (BGC-Argo PAR sensors do not saturate)
                     if isSaturated && strcmp(Data.MetaData.platform_type,'sealtag')
@@ -314,7 +319,7 @@ if ~all(ProfileInfo.(dataType).noData)
                         % Assign QC flag 3 to flagged shallow observations and profile
                         Data.Processed.(dataType).QC(flagged_shallow_obs,iP) = 3;
                         saturationPoints(iP) = mean(logPAR(flagged_shallow_obs));
-                        ProfileInfo.(dataType).PAR_QC(iP,1) = 3;
+                        ProfileInfo.(dataType).profileQC(iP,1) = 3;
 
                         % Remove saturated values
                         Data.Processed.(dataType).log.RegDrkSat(flagged_shallow_obs,iP) = NaN;
@@ -323,7 +328,7 @@ if ~all(ProfileInfo.(dataType).noData)
                 end
             else
                 % If all PAR observations are below the threshold, assign profile QC flag 0 (no further QC performed)
-                ProfileInfo.(dataType).PAR_QC(iP,1) = 0;
+                ProfileInfo.(dataType).profileQC(iP,1) = 0;
             end
         end
     end
@@ -335,7 +340,7 @@ if ~all(ProfileInfo.(dataType).noData)
     Data.Processed.(dataType).lin.RegDrkSat = exp(Data.Processed.(dataType).log.RegDrkSat);
 
     %% Spline/log fit to observations
-    Data = processPAR_fit(Data,ProfileInfo,defaultPars,dataType);
+    Data = processRadiometry_fit(Data,ProfileInfo,defaultPars,dataType);
 
     %% Final things
     % - New subsurface PAR value based on fitted data

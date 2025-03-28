@@ -1,4 +1,5 @@
 *.MATLABDriveTag
 *.tif
 *.nc
+*.flt
 .idea

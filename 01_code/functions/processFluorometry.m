@@ -31,7 +31,6 @@ function [Data,ProfileInfo] = processFluorometry(Data,ProfileInfo,defaultPars)
 % ProfileInfo - Profile specific information/metadata (general, PAR, IRR490, FLUO)
 %   structure, profile info listed in table format
 
-
 %% CMD message: start
 fprintf('Processing <strong>fluorescence</strong> data...');
 
@@ -42,13 +41,13 @@ var_names = {...
     'darkDepth', ...            % depth of first value belonging to dark signal
     'darkValue', ...            % dark value (median of 190 m-200 m values)
     'darkValCorr', ...          % dark value for correction (movmedian + linear fit)
-    'relativeSD_ML', ...        % relative SD within mixing layer
     'NPQDepth', ...             % depth from which NPQ correction is applied (see sesf045 script)
     'surfaceVal', ...           % surface fluorescence value
     'maxFluoDepth', ...         % depth of fluo max value
     'maxFluoValue', ...         % fluo max value
     'FirstOD_mean', ...         % mean fluorescence in the first optical depth
     'ML_mean', ...              % mean fluorescence in the mixed layer
+    'relativeSD_ML', ...        % relative SD within mixing layer
     'MLDbio'...                 % MLDbio (Lacour et al. 2017)
     }';
 ProfileInfo.FLUO = array2table(NaN(Data.MetaData.nProfs, numel(var_names)),'VariableNames',var_names);
@@ -86,36 +85,6 @@ Data.Processed.FLUO.RegDrkNPQFitBnd = NaN(size(Data.Processed.DEPTH));
 % Only proceed with processing if there is any usable data
 if ~all(ProfileInfo.FLUO.noData)
     %% Dark correction
-    % % Dark value: median of 10 deepest fluo values (interpolated to profiles where no dark estimate could be retrieved)
-    % darkDepthDelta = 10;
-    % fluoDeep = Data.Processed.FLUO.Reg(-defaultPars.CHL.maxCHLA_depth-(darkDepthDelta-1) : -defaultPars.CHL.maxCHLA_depth,:);
-    % ProfileInfo.FLUO.darkValue = fillmissing(median(fluoDeep,1,'omitnan'),'nearest')';
-    % 
-    % if ~all(isnan(ProfileInfo.FLUO.darkValue))
-    %     % Dark value smoothing
-    %     nDays = 10;   % time window to be used for smoothing (days), start with 10 days and reduce if obs time period is too short
-    %     darkValCorr = movmedian(ProfileInfo.FLUO.darkValue,ceil(Data.MetaData.nProfs/max(ProfileInfo.General.DeployDay)*nDays),'Endpoints','fill');
-    %     darkValCorr = fillmissing(darkValCorr,'nearest');
-    %     while all(isnan(darkValCorr))
-    %         % if dark values are all NaN, the median smoothing window was too big
-    %         % reduce window by 1 day until dark values are retrieved
-    %         nDays = nDays-1;
-    %         darkValCorr = movmedian(ProfileInfo.FLUO.darkValue,ceil(Data.MetaData.nProfs/max(ProfileInfo.General.DeployDay)*nDays),'Endpoints','fill');
-    %         darkValCorr = fillmissing(darkValCorr,'nearest');
-    %     end
-    % 
-    %     % Approximate drift over time by calculating a linear regression through smoothed dark values
-    %     darkValCorrFit = fitlm(datenum(ProfileInfo.General.Date),darkValCorr);
-    %     ProfileInfo.FLUO.darkValCorr = darkValCorrFit.Fitted;
-    % 
-    %     % Remove dark value and set negative values 0
-    %     Data.Processed.FLUO.RegDrk = Data.Processed.FLUO.Reg;
-    %     fluoOffset = repmat(ProfileInfo.FLUO.darkValCorr',size(Data.Processed.FLUO.RegDrk,1),1);
-    %     Data.Processed.FLUO.RegDrk = Data.Processed.FLUO.RegDrk - fluoOffset;
-    %     Data.Processed.FLUO.RegDrk(Data.Processed.FLUO.RegDrk<0) = 0;
-    % end
-
-    %% Updated dark correction (consistent with PAR, random subsamples)
     % Dark values (median of the 10 deepest observations, or as specified by darkDepthDelta) are determined for a random
     % subsample of deep profiles (>100 m, N = 10 or as defined in defaultPars.PAR.nDarkProfiles) and used to calculate a
     % tag-specific dark value. The randomised subsampling of deep profiles is repeated nRep times to yield a more robust
@@ -169,24 +138,30 @@ if ~all(ProfileInfo.FLUO.noData)
     end
 
     %% Compute relative standard deviation
+    switch Data.MetaData.platform_type
+        case 'sealtag'
+            dataType_LIGHT = 'LIGHT';
+        case 'float'
+            dataType_LIGHT = 'PAR';
+    end
     for iP = 1 : Data.MetaData.nProfs
         if isfinite(ProfileInfo.General.MLD(iP))
             % Calculate FLUO standard deviation between the MLD and the surface or the quenching depth
             botInd = abs(round(ProfileInfo.General.MLD(iP)));
 
-            if isnan(ProfileInfo.PAR.quenchDepth(iP))
-                % If the quenching depth is NaN, no quenching was detected (night time profile)
-                % calculate the SD/mean begtween the MLD and the surface.
+            if ~isfield(ProfileInfo, dataType_LIGHT) || isnan(ProfileInfo.(dataType_LIGHT).quenchDepth(iP))
+                % If the quenching depth is NaN (or if no light data available), quenching undetectable
+                % calculate the SD/mean between the MLD and the surface.
                 topInd = 1;
 
                 stdFluo = std(Data.Processed.FLUO.RegDrk(topInd:botInd,iP),0,'omitnan');
                 meanFluo = mean(Data.Processed.FLUO.RegDrk(topInd:botInd,iP),'omitnan');
                 ProfileInfo.FLUO.relativeSD_ML(iP) = stdFluo / meanFluo;
 
-            elseif abs(round(ProfileInfo.General.MLD(iP))) > abs(round(ProfileInfo.PAR.quenchDepth(iP)))
+            elseif abs(round(ProfileInfo.General.MLD(iP))) > abs(round(ProfileInfo.(dataType_LIGHT).quenchDepth(iP)))
                 % If the MLD is deeper than the quenching depth
                 % calculate the SD/mean between the MLD and the quenching depth
-                topInd = abs(round(ProfileInfo.PAR.quenchDepth(iP,1)));
+                topInd = abs(round(ProfileInfo.(dataType_LIGHT).quenchDepth(iP,1)));
 
                 stdFluo = std(Data.Processed.FLUO.RegDrk(topInd:botInd,iP),0,'omitnan');
                 meanFluo = mean(Data.Processed.FLUO.RegDrk(topInd:botInd,iP),'omitnan');
@@ -212,11 +187,15 @@ if ~all(ProfileInfo.FLUO.noData)
 
     for iP = 1 : Data.MetaData.nProfs
         % Find the shallower of the MLD*0.9 and quenching depth (>15 mol quanta): "NPQ layer"
-        if isfinite(ProfileInfo.PAR.quenchDepth(iP)) || isfinite(ProfileInfo.General.MLD(iP))
-            iZ_NPQ = abs(round(max([ProfileInfo.General.MLD(iP)*.9,ProfileInfo.PAR.quenchDepth(iP)])));
+        % Get quench depth
+        if isfield(ProfileInfo,dataType_LIGHT)
+            quenchDepth = ProfileInfo.(dataType_LIGHT).quenchDepth(iP);
         else
-            iZ_NPQ = NaN;
+            quenchDepth = NaN;
         end
+
+        iZ_NPQ = abs(round(max([ProfileInfo.General.MLD(iP)*.9,quenchDepth])));
+
 
         % Only correct if profile was taken during daytime (and if NPQ depth is finite and not 0)
         if ProfileInfo.General.Daytime(iP) && isfinite(iZ_NPQ) && iZ_NPQ > 0
@@ -294,10 +273,12 @@ if ~all(ProfileInfo.FLUO.noData)
     end
 
     % Mean fluorescence over the first optical depth (for comparison w/ satellite obs)
-    iZ_1stOD = abs(round(ProfileInfo.PAR.FirstOD));
-    ProfileInfo.FLUO.FirstOD_mean(find(isfinite(iZ_1stOD))) =...
-        arrayfun(@(a) mean(Data.Processed.FLUO.RegDrkNPQ(1:iZ_1stOD(a),a),'omitnan'),...
-        find(isfinite(ProfileInfo.PAR.FirstOD)))';
+    if isfield(ProfileInfo,dataType_LIGHT)
+        iZ_1stOD = abs(round(ProfileInfo.(dataType_LIGHT).FirstOD));
+        ProfileInfo.FLUO.FirstOD_mean(find(isfinite(iZ_1stOD))) =...
+            arrayfun(@(a) mean(Data.Processed.FLUO.RegDrkNPQ(1:iZ_1stOD(a),a),'omitnan'),...
+            find(isfinite(ProfileInfo.(dataType_LIGHT).FirstOD)))';
+    end
 
     % Mean fluorescence over the mixed layer
     iZ_MLD = abs(round(ProfileInfo.General.MLD));

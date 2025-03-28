@@ -1,0 +1,3 @@
+Download sea ice concentration  NetCDF files (daily, 6.25˚ resolution) from https://test-seaice.physik.uni-bremen.de/amsr2/asi_daygrid_swath/s6250/netcdf/ and store in this folder.
+These files should be of the following form: asi-AMSR2-s6250-20240418-v5.4.nc
+Without these files the sea ice concentration at profile locations cannot be determined.

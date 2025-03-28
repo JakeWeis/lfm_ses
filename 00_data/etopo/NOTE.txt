@@ -1,0 +1,5 @@
+Download the bedmap2_bin.zip dataset from https://secure.antarctica.ac.uk/data/bedmap2/ and store BOTH of the following two files in this folder:
+- bedmap2_bed.flt
+- bedmap2_grounded_bed_uncertainty.flt
+
+Without these files the bathymetry at profile locations cannot be determined.
