@@ -1,0 +1,4 @@
+Download the following BEDMAP3 bathymetry dataset from https://ramadda.data.bas.ac.uk/repository/entry/show?entryid=2d0e4791-8e20-46a3-80e4-f5f6716025d2 and store in this folder.
+- bedmap3.nc
+
+Without this files the bathymetry at profile locations cannot be determined.

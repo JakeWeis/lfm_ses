@@ -1,5 +1,0 @@
-Download one of the following ETOPO 2022 bathymetry datasets from https://www.ncei.noaa.gov/products/etopo-global-relief-model and store in this folder.
-- 30 arc-second resolution bedrock elevation in NetCDF format (ETOPO_2022_v1_30s_N90W180_bed.nc)
-- 60 arc-second resolution bedrock elevation in NetCDF format (ETOPO_2022_v1_60s_N90W180_bed.nc)
-
-Without one of these files the bathymetry at profile locations cannot be determined.

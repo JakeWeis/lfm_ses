@@ -37,15 +37,16 @@ function [Data,ProfileInfo] = processRadiometry(Data,ProfileInfo,defaultPars,dat
 %   structure, profile info listed in table format
 
 %% CMD message: start
-switch dataType
-    case 'LIGHT'
-        fprintf('Processing <strong>LIGHT</strong> data...');
-    case 'PAR'
-        fprintf('Processing <strong>PAR</strong> data...');
-    case 'IRR490'
-        fprintf('Processing <strong>downwelling irradiance at 490nm</strong> data...');
+if isempty(getCurrentTask)
+    switch dataType
+        case 'LIGHT'
+            fprintf('Processing <strong>LIGHT</strong> data...');
+        case 'PAR'
+            fprintf('Processing <strong>PAR</strong> data...');
+        case 'IRR490'
+            fprintf('Processing <strong>downwelling irradiance at 490nm</strong> data...');
+    end
 end
-
 
 %% Create parData info table
 var_names = {...
@@ -139,7 +140,7 @@ if ~all(ProfileInfo.(dataType).noData)
             %% 1) Detect and remove constant part of the PAR profile to avoid normality test on constant data series
             % See this example:
             % [h_temp,p_temp] = lillietest(ones(1,defVals.depthInterpGrid(end)),'Alpha',0.01,'Distribution','normal');
-            % returns h_temp = 1, i.e. rejection of the null hypothesis (= distribution is normal)
+            % returns h_temp = 1, i.e. null hypothesis not rejected (= distribution is normal)
 
             % iteratively move down the water column and check the range of PAR values between depth iZ and the deepest PAR value
 
@@ -377,6 +378,8 @@ if ~all(ProfileInfo.(dataType).noData)
 end
 
 %% CMD message: done
-fprintf('\b\b \x2713\n')
+if isempty(getCurrentTask)
+    fprintf('\b\b \x2713\n')
+end
 
 end

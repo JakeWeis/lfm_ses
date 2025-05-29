@@ -23,9 +23,12 @@ lastObs = find_ndim(isfinite(Data.Processed.(dataType).log.RegDrkSat),1,'last')'
 
 %% Functional fit: full profile (where observations are available)
 % Select profiles for fit computation
+% i_profiles = find(...
+%     ProfileInfo.General.Processed &...              % Passed processing checks in loadData
+%     ProfileInfo.General.Daytime &...                % Daytime profile
+%     sum(~isnan(Data.Processed.(dataType).log.RegDrkSat))' >= 3)';  % At least three values
 i_profiles = find(...
     ProfileInfo.General.Processed &...              % Passed processing checks in loadData
-    ProfileInfo.General.Daytime &...                % Daytime profile
     sum(~isnan(Data.Processed.(dataType).log.RegDrkSat))' >= 3)';  % At least three values
 % i_profiles = find(...
 %     ProfileInfo.General.Processed &...              % Passed processing checks in loadData

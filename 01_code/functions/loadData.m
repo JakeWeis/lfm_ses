@@ -37,7 +37,9 @@ function [Data,ProfileInfo] = loadData(root,platformID,defaultPars)
 %   structure, profile info listed in table format
 
 %% CMD message: start
-fprintf('Loading data...');
+if isempty(getCurrentTask)
+    fprintf('Loading data...');
+end
 
 %% Identify data type from NetCDF attributes (animal-borne or Argo)
 % Might remove the Argo bit at some point as this code is meant to be seal
@@ -336,16 +338,8 @@ ProfileInfo.General.Daytime = true(Data.MetaData.nProfs,1);
 ProfileInfo.General.Daytime(ProfileInfo.General.SolarAlt <= defaultPars.PAR.SolarAlt_DayTime) = false;
 
 %% Get bathymetry data along seal path from ETOPO 2022 and BEDMAP2
-missingBathyFiles = (...
-    ~exist(fullfile(root.data.etopo,'ETOPO_2022_v1_30s_N90W180_bed.nc'),"file") &&...
-    ~exist(fullfile(root.data.etopo,'ETOPO_2022_v1_0s_N90W180_bed.nc'),"file")) ||...
-    ~exist(fullfile(root.data.bedmap,'bedmap2_bed.flt'),"file") ||...
-    ~exist(fullfile(root.data.bedmap,'bedmap2_grounded_bed_uncertainty.flt'),"file");
-
-if ~missingBathyFiles
-    [ProfileInfo.General.Bathymetry_ETOPO,ProfileInfo.General.Bathymetry_BEDMAP] = ...
-        ll2bathy(ProfileInfo.General.Lat,ProfileInfo.General.Lon,root);
-end
+[ProfileInfo.General.Bathymetry_ETOPO,ProfileInfo.General.Bathymetry_BEDMAP] = ...
+    ll2bathy(ProfileInfo.General.Lat,ProfileInfo.General.Lon,root);
 
 %% Get sea ice concentration along seal path
 missingSICFiles = isempty(dirPaths(fullfile(root.data.seaice,'*.nc')));
@@ -460,9 +454,9 @@ ProfileInfo.General.FrontalZone_Orsi = categorical(ProfileInfo.General.FrontalZo
 
 
 %% CMD message: done
-pause(0.1)
-fprintf('\b\b \x2713\n')
-
+if isempty(getCurrentTask)
+    fprintf('\b\b \x2713\n')
+end
 
 %% Custom functions
 function [B_etopo,B_bedmap,B_unc_bedmap] = ll2bathy(lat,lon,root)
@@ -483,63 +477,73 @@ assert(isvector(lat)&isvector(lon),'Lat and lon must be vectors.')
 lat = reshape(lat,numel(lat),1);
 lon = reshape(lon,numel(lon),1);
 
-%% BEDMAP2 BATHYMETRY
-% Convert query lat/lon coordinates to polar steroegraphic x/y coordinates
-x_query = ones(numel(lat),1)*3333500+1;
-y_query = ones(numel(lat),1)*3333500+1;
-for iL = 1 : numel(lat)
-    if lat(iL)<0
-        % ll2ps throws an error if the latitude is in the northern hemisphere.
-        [x_query(iL),y_query(iL)] = ll2ps(lat(iL),lon(iL));
+B_bedmap = NaN(numel(lat),1);
+B_unc_bedmap = NaN(numel(lat),1);
+B_etopo = NaN(numel(lat),1);
+
+%% BEDMAP3 BATHYMETRY
+if ~(root.missing.bedmap_flt && root.missing.bedmap_nc)
+    % Convert query lat/lon coordinates to polar steroegraphic x/y coordinates
+    x_query = ones(numel(lat),1)*9999999;
+    y_query = ones(numel(lat),1)*9999999;
+    for iL = 1 : numel(lat)
+        if lat(iL)<0
+            % ll2ps throws an error if the latitude is in the northern hemisphere.
+            [x_query(iL),y_query(iL)] = ll2ps(lat(iL),lon(iL));
+        end
     end
+
+    % Polarstereographic grid
+    x_bedmap = ncread(fullfile(root.data.bedmap,'bedmap3.nc'),'x');
+    y_bedmap = ncread(fullfile(root.data.bedmap,'bedmap3.nc'),'y');
+
+    % NB: flt data is "row major" sorted, i.e. x-coordinates = rows, y-coordinates = columns
+    i_col = dsearchn(x_bedmap,x_query);
+    i_row = dsearchn(y_bedmap,y_query);
+
+    % Offset required to get to the query point in the file (moving along columns).
+    offset = (i_row - 1) * numel(x_bedmap) + (i_col - 1);
+
+    % Open binary bathymetry and uncertainty files (.flt)
+    fid_1 = fopen(fullfile(root.data.bedmap,'bm3_bed_topography.flt'), 'r', 'l');
+    fid_2 = fopen(fullfile(root.data.bedmap,'bm3_bed_uncertainty.flt'), 'r', 'l');
+
+    % Read bathymetry and uncertainty values from files
+    for iL = 1 : numel(i_row)
+        if (x_query(iL)>=-3333500 && x_query(iL)<=3333500) && (y_query(iL)>=-3333500 && y_query(iL)<=3333500)
+            fseek(fid_1,offset(iL)*4,'bof');
+            B_bedmap(iL) = fread(fid_1, [1 1], 'float32');
+            fseek(fid_2,offset(iL)*4,'bof');
+            B_unc_bedmap(iL) = fread(fid_2, [1 1], 'float32');
+        end
+    end
+    fclose(fid_1);
+    fclose(fid_2);
 end
 
-% Polarstereographic grid
-x_bedmap = linspace(-3333500,3333500,6667)';
-y_bedmap = linspace(-3333500,3333500,6667)';
+%% ETOPO 2022 BATHYMETRY (FLT)
+if ~(root.missing.etopo_flt && root.missing.etopo_nc)
+    etopo_nc_files = dirPaths(fullfile(root.data.etopo,'ETOPO_2022_v1_*_N90W180_bed.nc'));
+    etopo_dataset = etopo_nc_files(1).name(1:end-3);
 
-% Open binary bathymetry and uncertainty files (.flt)
-fid_1 = fopen(fullfile(root.data.bedmap,'bedmap2_bed.flt'), 'r', 'l');
-fid_2 = fopen(fullfile(root.data.bedmap,'bedmap2_grounded_bed_uncertainty.flt'), 'r', 'l');
+    % Extract data from netCDF file at specified coordinates
+    lat_etopo = ncread(fullfile(root.data.etopo,[etopo_dataset,'.nc']),'lat');
+    lon_etopo = ncread(fullfile(root.data.etopo,[etopo_dataset,'.nc']),'lon');
+    i_col = dsearchn(lon_etopo,lon);
+    i_row = dsearchn(lat_etopo,lat);
+    
+    % Offset required to get to the query point in the file (moving along columns).
+    offset = (i_row - 1) * 43200 + (i_col - 1);
 
-% row/column indices of the query points (x/y PS-grid points calculated from lat/lon coordinates) 
-% NB: The bathymetry grid in the .flt file is rotated by 90 degrees (CW) relative to the polar stereographic grid. Therefore, finding the
-% correct point in the file requires going "backwards" along the columns. This is why the column index is subtracted from the
-% total number of columns (6667). The row index does not change with the rotation.
-i_row = dsearchn(x_bedmap,x_query);
-i_col = 6667-dsearchn(y_bedmap,y_query)+1;
+    % Open binary bathymetry and uncertainty files (.flt)
+    fid = fopen(fullfile(root.data.etopo,[etopo_dataset,'.flt']), 'r', 'l');
 
-% Offset required to get to the query point in the file (moving along columns).
-offset = (i_col - 1) * 6667 + (i_row - 1);
-
-% Read bathymetry and uncertainty values from files
-B_bedmap = NaN(numel(i_row),1);
-B_unc_bedmap = NaN(numel(i_row),1);
-for iL = 1 : numel(i_row)
-    if (x_query(iL)>=-3333500 && x_query(iL)<=3333500) && (y_query(iL)>=-3333500 && y_query(iL)<=3333500)
-        fseek(fid_1,offset(iL)*4,'bof');
-        B_bedmap(iL) = fread(fid_1, [1 1], 'float32');
-        fseek(fid_2,offset(iL)*4,'bof');
-        B_unc_bedmap(iL) = fread(fid_2, [1 1], 'float32');
-    else
-        B_bedmap(iL) = NaN;
-        B_unc_bedmap(iL) = NaN;
+    % Read bathymetry and uncertainty values from files
+    for iL = 1 : numel(i_row)
+        fseek(fid,offset(iL)*4,'bof');
+        B_etopo(iL) = fread(fid, [1 1], 'float32');
     end
-end
-fclose(fid_1);
-fclose(fid_2);
-
-%% ETOPO 2022 BATHYMETRY
-
-% Extract data from netCDF file at specified coordinates
-lat_etopo = ncread(fullfile(root.data.etopo,'ETOPO_2022_v1_30s_N90W180_bed.nc'),'lat');
-lon_etopo = ncread(fullfile(root.data.etopo,'ETOPO_2022_v1_30s_N90W180_bed.nc'),'lon');
-i_lat = dsearchn(lat_etopo,lat);
-i_lon = dsearchn(lon_etopo,lon);
-
-B_etopo = NaN(numel(i_lat),1);
-for iL = 1 : numel(i_lat)
-    B_etopo(iL) = ncread(fullfile(root.data.etopo,'ETOPO_2022_v1_30s_N90W180_bed.nc'),'z',[i_lon(iL),i_lat(iL)],[1 1]);
+    fclose(fid);
 end
 
 end

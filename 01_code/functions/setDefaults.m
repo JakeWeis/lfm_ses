@@ -9,6 +9,7 @@ function defaultPars = setDefaults(root)
 % defaultPars - default processing parameters
 %   structure
 
+%% CMD message: start
 fprintf('Setting default processing parameters...');
 
 %% Miscellaneous
@@ -68,6 +69,9 @@ defaultPars.LFM.botBound_lfm = 200;
 defaultPars.LFM.lambda = 0.03;              % smoothing parameter for functional fit
 defaultPars.LFM.mybL = defaultPars.LFM.LFMcore.mybL;
 defaultPars.LFM.pp = (defaultPars.LFM.topBound_lfm : defaultPars.LFM.botBound_lfm).';
+
+%% Photophysiology
+defaultPars.PhotoPhys.depthrange = 10:50;
 
 %% CMD message: done
 fprintf('\b\b \x2713\n')

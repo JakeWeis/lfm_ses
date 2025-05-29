@@ -12,41 +12,25 @@
 % 3) processPAR.m: PAR data processing
 % 4) processFLUO.m: Fluorescence data processing
 
-%% Project root and raw data input directories
 % Get LFM_SES root directory and add to MATLAB path
 root.proj = fileparts(fileparts(mfilename('fullpath'))); % lfm_ses_menu is in a subdirectory two levels down from the root directory
 addpath(genpath(root.proj))
-
-root.data.etopo  = fullfile(root.proj, '00_data','etopo');
-root.data.bedmap  = fullfile(root.proj, '00_data','bedmap2');
-root.data.seal   = fullfile(root.proj, '00_data','seal');
-root.data.seaice  = fullfile(root.proj, '00_data','seaice');
-
-% Issue warnings if bathymetry or sea ice concentration datasets are missing
-missingBathyFiles = (...
-    ~exist(fullfile(root.data.etopo,'ETOPO_2022_v1_30s_N90W180_bed.nc'),"file") &&...
-    ~exist(fullfile(root.data.etopo,'ETOPO_2022_v1_0s_N90W180_bed.nc'),"file")) ||...
-    ~exist(fullfile(root.data.bedmap,'bedmap2_bed.flt'),"file") ||...
-    ~exist(fullfile(root.data.bedmap,'bedmap2_grounded_bed_uncertainty.flt'),"file");
-if missingBathyFiles
-    warning('Missing ETOPO and BEDMAP bathymetry maps. No bathymetry will be determined. Refer to NOTE.txt files in ./00_data/bedmap2 and ./00_data/etopo for download instructions.')
-end
-
-missingSICFiles = isempty(dirPaths(fullfile(root.data.seaice,'*.nc')));
-if missingSICFiles
-    warning('Missing sea ice concentration maps. No sea ice concentration will be determined. Refer to NOTE.txt files in ./00_data/seaice for download instructions.')
-end
+root = process_init(root);
 
 % Raw input data directory
 data_base_dir       = '/Volumes/Data/Work';
-% root_input{1}       = '/SEALTAGS/Prydz/ct182/v3_20250310/';
-root_input{1}       = '/SEALTAGS/Prydz/FLUO_LIGHT';
-root_input{2}       = '/SEALTAGS/Prydz/FLUO';
+% root_input{1}       = '/SEALTAGS/Prydz/FLUO_LIGHT';
+% root_input{2}       = '/SEALTAGS/Prydz/FLUO';
+% root_input{3}       = '/SEALTAGS/Prydz/ct182/v4_20250414';
+root_input{1}       = '/SEALTAGS/Leo/Australia_filtered/DATA';
+root_input{2}       = '/SEALTAGS/Leo/Australia_filtered/DATA_FULL_RES';
+root_input{3}       = '/SEALTAGS/Leo/France_filtered/DATA';
+root_input{4}       = '/SEALTAGS/Leo/France_filtered/DATA_FULL_RES';
 
 % Set default processing parameters
 defaultPars = setDefaults(root);
 
-for iInput = 1:2
+for iInput = 1:4
     %% Raw data input and processing output directories
     root.input       = fullfile(data_base_dir,root_input{iInput},'RAW');
     root.output      = fullfile(data_base_dir,root_input{iInput},'PROCESSED');
@@ -58,9 +42,11 @@ for iInput = 1:2
     fprintf('\n<strong>Begin processing platform data.</strong>\n\n')
     % Iterate through all NetCDF files in the input directory
     allFiles = dirPaths(fullfile(root.input, '*.nc'));
+    % Remove "_traj" files
+    allFiles(contains({allFiles.name}','_traj')) = [];
     nFiles = numel(allFiles);
 
-   parfor iPlatform = 1 : numel(allFiles)
+   for iPlatform = 1 : numel(allFiles)
         %% Processing
         % Platform ID
         platformID = allFiles(iPlatform).name;
@@ -72,25 +58,30 @@ for iInput = 1:2
 
         % Load data
         [Data,ProfileInfo] = loadData(root,platformID,defaultPars);
+        hasLight = isfield(Data.Processed,'LIGHT') || isfield(Data.Processed,'DOWNWELLING_PAR') || isfield(Data.Processed,'DOWN_IRRADIANCE490');
+        hasFluo = isfield(Data.Processed,'FLUO');
 
         % Process light data
-        switch Data.MetaData.platform_type
-            case 'sealtag'
-                if isfield(Data.Processed,'LIGHT')
-                    [Data,ProfileInfo] = processRadiometry(Data,ProfileInfo,defaultPars,'LIGHT');
-                end
-            case 'float'
-                if isfield(Data.Processed,'PAR')
-                    [Data,ProfileInfo] = processRadiometry(Data,ProfileInfo,defaultPars,'DOWNWELLING_PAR');
-                end
-                if isfield(Data.Processed,'IRR490')
-                    [Data,ProfileInfo] = processRadiometry(Data,ProfileInfo,defaultPars,'DOWN_IRRADIANCE490');
-                end
+        if hasLight
+            if isfield(Data.Processed,'LIGHT')
+                [Data,ProfileInfo] = processRadiometry(Data,ProfileInfo,defaultPars,'LIGHT');
+            end
+            if isfield(Data.Processed,'PAR')
+                [Data,ProfileInfo] = processRadiometry(Data,ProfileInfo,defaultPars,'DOWNWELLING_PAR');
+            end
+            if isfield(Data.Processed,'IRR490')
+                [Data,ProfileInfo] = processRadiometry(Data,ProfileInfo,defaultPars,'DOWN_IRRADIANCE490');
+            end
         end
 
         % Process fluorescence data
-        if isfield(Data.Processed,'FLUO')
+        if hasFluo
             [Data,ProfileInfo] = processFluorometry(Data,ProfileInfo,defaultPars);
+        end
+
+        % Calculate photophysiological metrics
+        if hasLight && hasFluo
+            [Data,ProfileInfo] = PhotoPhysiology(Data,ProfileInfo,defaultPars);
         end
 
         %% Save output

@@ -32,7 +32,9 @@ function [Data,ProfileInfo] = processFluorometry(Data,ProfileInfo,defaultPars)
 %   structure, profile info listed in table format
 
 %% CMD message: start
-fprintf('Processing <strong>fluorescence</strong> data...');
+if isempty(getCurrentTask)
+    fprintf('Processing <strong>fluorescence</strong> data...');
+end
 
 %% Create fluoData info table
 var_names = {...
@@ -309,6 +311,8 @@ if ~all(ProfileInfo.FLUO.noData)
 end
 
 %% CMD message: done
-fprintf('\b\b \x2713\n\n')
+if isempty(getCurrentTask)
+    fprintf('\b\b \x2713\n')
+end
 
 end

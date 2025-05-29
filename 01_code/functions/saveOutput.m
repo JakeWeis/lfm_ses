@@ -1,5 +1,10 @@
 function saveOutput(root,platformID,ProfileInfo,Data)
 
+%% CMD message: start
+if isempty(getCurrentTask)
+    fprintf('Saving <strong>output</strong>...');
+end
+
 %% Write everything to .mat file
 s = struct('ProfileInfo',ProfileInfo,'Data',Data);
 save(fullfile(root.output,[platformID(1:end-3),'_PROCESSED.mat']), '-fromstruct', s)
@@ -112,38 +117,40 @@ try
     netcdf.putAtt(ncTarget, varIds(varname), 'resolution', 0.0001);
 
     % FLUORESCENCE
-    if ~all(ProfileInfo.FLUO.noData)
-        % Regularised
-        varname = 'FLUO';
-        varIds(varname) = netcdf.defVar(ncTarget, varname, 'double', [dimIds('N_LEVELS'),dimIds('N_PROF')]);
-        netcdf.putAtt(ncTarget, varIds(varname), 'long_name', 'Chlorophyll fluorescence');
-        netcdf.putAtt(ncTarget, varIds(varname), 'standard_name', 'mass_concentration_of_chlorophyll_a_in_sea_water');
-        netcdf.putAtt(ncTarget, varIds(varname), 'POST_PROCESSING', 'regularised (1-m depth grid)');
-        netcdf.putAtt(ncTarget, varIds(varname), 'units', 'mg/m3');
+    if isfield(ProfileInfo,'FLUO')
+        if ~all(ProfileInfo.FLUO.noData)
+            % Regularised
+            varname = 'FLUO';
+            varIds(varname) = netcdf.defVar(ncTarget, varname, 'double', [dimIds('N_LEVELS'),dimIds('N_PROF')]);
+            netcdf.putAtt(ncTarget, varIds(varname), 'long_name', 'Chlorophyll fluorescence');
+            netcdf.putAtt(ncTarget, varIds(varname), 'standard_name', 'mass_concentration_of_chlorophyll_a_in_sea_water');
+            netcdf.putAtt(ncTarget, varIds(varname), 'POST_PROCESSING', 'regularised (1-m depth grid)');
+            netcdf.putAtt(ncTarget, varIds(varname), 'units', 'mg/m3');
 
-        % Dark-corrected
-        varname = 'FLUO_DRK';
-        varIds(varname) = netcdf.defVar(ncTarget, varname, 'double', [dimIds('N_LEVELS'),dimIds('N_PROF')]);
-        netcdf.putAtt(ncTarget, varIds(varname), 'long_name', 'Chlorophyll fluorescence');
-        netcdf.putAtt(ncTarget, varIds(varname), 'standard_name', 'mass_concentration_of_chlorophyll_a_in_sea_water');
-        netcdf.putAtt(ncTarget, varIds(varname), 'POST_PROCESSING', 'regularised, dark-corrected');
-        netcdf.putAtt(ncTarget, varIds(varname), 'units', 'mg/m3');
+            % Dark-corrected
+            varname = 'FLUO_DRK';
+            varIds(varname) = netcdf.defVar(ncTarget, varname, 'double', [dimIds('N_LEVELS'),dimIds('N_PROF')]);
+            netcdf.putAtt(ncTarget, varIds(varname), 'long_name', 'Chlorophyll fluorescence');
+            netcdf.putAtt(ncTarget, varIds(varname), 'standard_name', 'mass_concentration_of_chlorophyll_a_in_sea_water');
+            netcdf.putAtt(ncTarget, varIds(varname), 'POST_PROCESSING', 'regularised, dark-corrected');
+            netcdf.putAtt(ncTarget, varIds(varname), 'units', 'mg/m3');
 
-        % NPQ-corrected
-        varname = 'FLUO_DRK_NPQ';
-        varIds(varname) = netcdf.defVar(ncTarget, varname, 'double', [dimIds('N_LEVELS'),dimIds('N_PROF')]);
-        netcdf.putAtt(ncTarget, varIds(varname), 'long_name', 'Chlorophyll fluorescence');
-        netcdf.putAtt(ncTarget, varIds(varname), 'standard_name', 'mass_concentration_of_chlorophyll_a_in_sea_water');
-        netcdf.putAtt(ncTarget, varIds(varname), 'POST_PROCESSING', 'regularised, dark-corrected, NPQ-corrected');
-        netcdf.putAtt(ncTarget, varIds(varname), 'units', 'mg/m3');
+            % NPQ-corrected
+            varname = 'FLUO_DRK_NPQ';
+            varIds(varname) = netcdf.defVar(ncTarget, varname, 'double', [dimIds('N_LEVELS'),dimIds('N_PROF')]);
+            netcdf.putAtt(ncTarget, varIds(varname), 'long_name', 'Chlorophyll fluorescence');
+            netcdf.putAtt(ncTarget, varIds(varname), 'standard_name', 'mass_concentration_of_chlorophyll_a_in_sea_water');
+            netcdf.putAtt(ncTarget, varIds(varname), 'POST_PROCESSING', 'regularised, dark-corrected, NPQ-corrected');
+            netcdf.putAtt(ncTarget, varIds(varname), 'units', 'mg/m3');
 
-        % Smoothed
-        varname = 'FLUO_DRK_NPQ_FIT';
-        varIds(varname) = netcdf.defVar(ncTarget, varname, 'double', [dimIds('N_LEVELS'),dimIds('N_PROF')]);
-        netcdf.putAtt(ncTarget, varIds(varname), 'long_name', 'Chlorophyll fluorescence');
-        netcdf.putAtt(ncTarget, varIds(varname), 'standard_name', 'mass_concentration_of_chlorophyll_a_in_sea_water');
-        netcdf.putAtt(ncTarget, varIds(varname), 'POST_PROCESSING', 'regularised, dark-corrected, NPQ-corrected, smoothed (bspline fit)');
-        netcdf.putAtt(ncTarget, varIds(varname), 'units', 'mg/m3');
+            % Smoothed
+            varname = 'FLUO_DRK_NPQ_FIT';
+            varIds(varname) = netcdf.defVar(ncTarget, varname, 'double', [dimIds('N_LEVELS'),dimIds('N_PROF')]);
+            netcdf.putAtt(ncTarget, varIds(varname), 'long_name', 'Chlorophyll fluorescence');
+            netcdf.putAtt(ncTarget, varIds(varname), 'standard_name', 'mass_concentration_of_chlorophyll_a_in_sea_water');
+            netcdf.putAtt(ncTarget, varIds(varname), 'POST_PROCESSING', 'regularised, dark-corrected, NPQ-corrected, smoothed (bspline fit)');
+            netcdf.putAtt(ncTarget, varIds(varname), 'units', 'mg/m3');
+        end
     end
 
     % LIGHT
@@ -270,8 +277,7 @@ try
 
     % Close files
     netcdf.close(ncSource);
-    netcdf.close(ncTarget);
-    
+    netcdf.close(ncTarget);    
     
 catch ME
     % Clean up in case of error
@@ -289,4 +295,10 @@ table_names = fieldnames(ProfileInfo);
 for iT = 1 : numel(table_names)
     writetable(ProfileInfo.(table_names{iT}),fullfile(root.output,'NC',[platformID(1:end-3),'_ProfileInfo.xlsx']),'Sheet',table_names{iT})
 end
+
+%% CMD message: done
+if isempty(getCurrentTask)
+    fprintf('\b\b \x2713\n')
+end
+
 end
